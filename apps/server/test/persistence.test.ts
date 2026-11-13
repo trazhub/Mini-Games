@@ -41,7 +41,8 @@ describe('database (PostgreSQL engine via PGlite)', () => {
   it('stores no nickname/IP on guest rows (data minimisation)', async () => {
     const res = await db.execute(sql`select column_name from information_schema.columns where table_name = 'guests' order by 1`);
     const cols = (res.rows as { column_name: string }[]).map((r) => r.column_name);
-    expect(cols).toEqual(['account_id', 'created_at', 'id', 'last_seen_at']);
+    // recovery_hash is an HMAC of the optional recovery code, not personal data.
+    expect(cols).toEqual(['account_id', 'created_at', 'id', 'last_seen_at', 'recovery_hash']);
   });
 
   it('records a match transactionally and aggregates stats across matches', async () => {

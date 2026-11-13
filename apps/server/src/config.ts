@@ -13,7 +13,8 @@ const envSchema = z.object({
   ALLOWED_ORIGINS: z.string().default('http://localhost:5173,http://127.0.0.1:5173,http://localhost:4173,http://127.0.0.1:4173'),
   /** HMAC secret for guest session tokens. REQUIRED in production. */
   SESSION_SECRET: z.string().min(32).optional(),
-  SESSION_TTL_HOURS: z.coerce.number().positive().default(24),
+  /** Guest token lifetime; renewed on every POST /api/guest with a valid token (sliding ~1 year). */
+  SESSION_TTL_HOURS: z.coerce.number().positive().default(8760),
   /** postgres://user:pass@host:5432/db - when unset, stats persistence is disabled. */
   DATABASE_URL: z.string().optional(),
   /** Set when running behind a reverse proxy (Caddy / Cloudflare Tunnel) so req.ip uses X-Forwarded-For. */

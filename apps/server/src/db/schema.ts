@@ -10,6 +10,8 @@ export const guests = pgTable('guests', {
   accountId: uuid('account_id'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   lastSeenAt: timestamp('last_seen_at', { withTimezone: true }).notNull().defaultNow(),
+  /** HMAC-SHA256 (hex) of the guest's current recovery code; null until one is requested. Never the code itself. */
+  recoveryHash: text('recovery_hash').unique('guests_recovery_hash_unique'),
 });
 
 export const matches = pgTable(

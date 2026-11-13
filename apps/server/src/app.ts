@@ -8,6 +8,8 @@ import {
   guestRequestSchema,
   normalizeRoomCode,
   type GuestResponse,
+  type RecoveryResponse,
+  type RestoreRequest,
   type RoomInfoResponse,
 } from '@minigamehub/shared';
 import express, { type NextFunction, type Request, type Response } from 'express';
@@ -18,7 +20,10 @@ import { Metrics } from './metrics';
 import { KeyedWindowLimiter } from './ratelimit';
 import { PartyRoom } from './rooms/PartyRoom';
 import { setRuntime, type Runtime, type Timing } from './runtime';
-import { issueGuestSession, verifySession } from './session';
+import { generateRecoveryCode, hashRecoveryCode, normalizeRecoveryCode } from './recovery';
+import { issueGuestSession, refreshGuestSession, verifySession } from './session';
+
+const RESTORE_RATE_PER_MIN = 10;
 
 export interface CreateServerOptions {
   config: ServerConfig;
@@ -68,6 +73,8 @@ export function createGameServer(opts: CreateServerOptions): GameServer {
 
   const guestLimiter = new KeyedWindowLimiter(config.GUEST_RATE_PER_MIN, 60_000);
   const lookupLimiter = new KeyedWindowLimiter(60, 60_000);
+  /** Recovery-code guesses: 10/min/IP against an 80-bit space (see docs/SECURITY.md). */
+  const restoreLimiter = new KeyedWindowLimiter(RESTORE_RATE_PER_MIN, 60_000);
   const sessionTtlMs = config.SESSION_TTL_HOURS * 3600_000;
 
   // CORS for Colyseus' own matchmaking endpoints (/matchmake/*). Colyseus merges
@@ -121,10 +128,56 @@ export function createGameServer(opts: CreateServerOptions): GameServer {
         if (!guestLimiter.allow(clientIp(req))) return void res.status(429).json({ error: 'rate_limited' });
         const parsed = guestRequestSchema.safeParse(req.body ?? {});
         if (!parsed.success) return void res.status(400).json({ error: 'bad_request' });
-        const session = issueGuestSession(config.sessionSecret, sessionTtlMs);
+        // Sliding renewal: a valid token (header first, then body) keeps the same guest with a fresh
+        // lifetime (200). Any invalid/expired/foreign token silently falls back to a new guest (201),
+        // so a stale client never gets stuck in an error loop.
+        const refreshed =
+          refreshGuestSession(config.sessionSecret, sessionTtlMs, bearerToken(req)) ??
+          refreshGuestSession(config.sessionSecret, sessionTtlMs, parsed.data.resumeToken);
+        const session = refreshed ?? issueGuestSession(config.sessionSecret, sessionTtlMs);
         void repo.upsertGuest(session.guestId).catch((e) => console.error('[db] upsertGuest failed', e?.message ?? e));
         const body: GuestResponse = session;
-        res.status(201).json(body);
+        res.status(refreshed ? 200 : 201).json(body);
+      });
+
+      app.post('/api/guest/recovery', async (req, res) => {
+        if (!guestLimiter.allow(clientIp(req))) return void res.status(429).json({ error: 'rate_limited' });
+        const claims = verifySession(config.sessionSecret, bearerToken(req));
+        if (!claims) return void res.status(401).json({ error: 'unauthorized' });
+        if (!repo.enabled) return void res.status(501).json({ error: 'recovery_unavailable' });
+        // The plain code exists only in this response; only its HMAC is stored and nothing is logged.
+        const code = generateRecoveryCode();
+        try {
+          await repo.setRecoveryHash(claims.sub, hashRecoveryCode(code, config.sessionSecret));
+        } catch {
+          console.error('[db] setRecoveryHash failed');
+          return void res.status(503).json({ error: 'unavailable' });
+        }
+        res.setHeader('Cache-Control', 'no-store');
+        const body: RecoveryResponse = { code };
+        res.json(body);
+      });
+
+      app.post('/api/guest/restore', async (req, res) => {
+        // Own limiter (brute-force guard), keyed by the same client-IP logic as every other limiter.
+        if (!restoreLimiter.allow(clientIp(req))) return void res.status(429).json({ error: 'rate_limited' });
+        if (!repo.enabled) return void res.status(501).json({ error: 'recovery_unavailable' });
+        const raw = (req.body as Partial<RestoreRequest> | undefined)?.code;
+        const code = typeof raw === 'string' ? normalizeRecoveryCode(raw) : null;
+        if (!code) return void res.status(400).json({ error: 'invalid_code' });
+        let guestId: string | null;
+        try {
+          guestId = await repo.findGuestByRecoveryHash(hashRecoveryCode(code, config.sessionSecret));
+        } catch {
+          console.error('[db] findGuestByRecoveryHash failed');
+          return void res.status(503).json({ error: 'unavailable' });
+        }
+        if (!guestId) return void res.status(404).json({ error: 'unknown_code' });
+        const session = issueGuestSession(config.sessionSecret, sessionTtlMs, Date.now(), guestId);
+        void repo.upsertGuest(guestId).catch((e) => console.error('[db] upsertGuest failed', e?.message ?? e));
+        const body: GuestResponse = session;
+        res.setHeader('Cache-Control', 'no-store');
+        res.json(body);
       });
 
       app.get('/api/rooms/:code', (req, res) => {
@@ -144,8 +197,7 @@ export function createGameServer(opts: CreateServerOptions): GameServer {
       });
 
       app.get('/api/me/stats', async (req, res) => {
-        const token = /^Bearer (.+)$/.exec(req.header('authorization') ?? '')?.[1];
-        const claims = verifySession(config.sessionSecret, token);
+        const claims = verifySession(config.sessionSecret, bearerToken(req));
         if (!claims) return void res.status(401).json({ error: 'unauthorized' });
         try {
           res.json({ persisted: repo.enabled, stats: await repo.getStats(claims.sub) });
@@ -199,6 +251,13 @@ export function createGameServer(opts: CreateServerOptions): GameServer {
 
 function clientIp(req: Request): string {
   return req.ip ?? req.socket.remoteAddress ?? 'unknown';
+}
+
+/** Bearer token from the Authorization header, or undefined. Oversized values are ignored (never parsed or echoed). */
+function bearerToken(req: Request): string | undefined {
+  const header = req.header('authorization');
+  if (!header || header.length > 1024) return undefined;
+  return /^Bearer (.+)$/.exec(header)?.[1];
 }
 
 function corsMiddleware(config: ServerConfig) {

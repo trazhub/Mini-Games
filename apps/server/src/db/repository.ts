@@ -30,6 +30,10 @@ export interface Repository {
   upsertGuest(guestId: string): Promise<void>;
   recordMatch(match: MatchRecord): Promise<void>;
   getStats(guestId: string): Promise<PlayerStats | null>;
+  /** Stores (replacing any previous) recovery-code hash for the guest, creating the row if needed. */
+  setRecoveryHash(guestId: string, hash: string): Promise<void>;
+  /** Guest id owning this recovery-code hash, or null. */
+  findGuestByRecoveryHash(hash: string): Promise<string | null>;
   ping(): Promise<boolean>;
   close(): Promise<void>;
 }
@@ -40,6 +44,8 @@ export const noopRepository: Repository = {
   upsertGuest: async () => {},
   recordMatch: async () => {},
   getStats: async () => null,
+  setRecoveryHash: async () => {},
+  findGuestByRecoveryHash: async () => null,
   ping: async () => true,
   close: async () => {},
 };
@@ -100,6 +106,16 @@ export function createPgRepository(db: AnyPgDb, closeFn: () => Promise<void>): R
       const rows = await db.select().from(playerStats).where(eq(playerStats.guestId, guestId)).limit(1);
       const r = rows[0];
       return r ? { gamesPlayed: r.gamesPlayed, wins: r.wins, totalScore: r.totalScore } : null;
+    },
+    async setRecoveryHash(guestId, hash) {
+      await db
+        .insert(guests)
+        .values({ id: guestId, recoveryHash: hash })
+        .onConflictDoUpdate({ target: guests.id, set: { recoveryHash: hash, lastSeenAt: sql`now()` } });
+    },
+    async findGuestByRecoveryHash(hash) {
+      const rows = await db.select({ id: guests.id }).from(guests).where(eq(guests.recoveryHash, hash)).limit(1);
+      return rows[0]?.id ?? null;
     },
     async ping() {
       try {

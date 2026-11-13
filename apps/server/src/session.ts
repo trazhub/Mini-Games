@@ -24,6 +24,25 @@ export function issueGuestSession(
   return { guestId, token: `${body}.${sign(secret, body)}`, expiresAt: claims.exp };
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Sliding renewal: a valid, unexpired token yields a new token for the SAME guest with a fresh
+ * `ttlMs` lifetime. Anything else (missing, malformed, tampered, foreign-secret, expired) yields
+ * null so the caller issues a brand-new guest. The token format is unchanged, so tokens issued
+ * before long-lived sessions existed refresh normally.
+ */
+export function refreshGuestSession(
+  secret: string,
+  ttlMs: number,
+  token: unknown,
+  now = Date.now(),
+): { guestId: string; token: string; expiresAt: number } | null {
+  const claims = verifySession(secret, token, now);
+  if (!claims || !UUID_RE.test(claims.sub)) return null;
+  return issueGuestSession(secret, ttlMs, now, claims.sub);
+}
+
 /** Returns the claims for a valid, unexpired token; otherwise null. Constant-time signature check. */
 export function verifySession(secret: string, token: unknown, now = Date.now()): SessionClaims | null {
   if (typeof token !== 'string' || token.length > 512) return null;
