@@ -1,7 +1,7 @@
 # Ubuntu VM deployment
 
 Target: `traz-vm` - Ubuntu 24.04.5 LTS, 6 vCPU, ~8 GB RAM, Docker Engine already installed
-(do **not** reinstall it). LAN `10.10.42.88`, Tailscale `100.79.46.21`.
+(do **not** reinstall it). LAN `10.10.15.254`, Tailscale `100.79.46.21`.
 
 > **Nothing here has been executed on the VM.** These steps are prepared and must be reviewed and
 > approved by you before running. Never run anything that changes firewall or DNS without
@@ -13,7 +13,7 @@ Target: `traz-vm` - Ubuntu 24.04.5 LTS, 6 vCPU, ~8 GB RAM, Docker Engine already
 `server` (Node, non-root, read-only FS, no capabilities) + `postgres` (private network only) +
 `backup` sidecar, all in one compose project `minigamehub`, isolated from unrelated containers
 (own network and volumes). The existing Nginx server terminates TLS and proxies
-`backend.opop.eu.org` -> `10.10.42.88:2567`.
+`backend.opop.eu.org` -> `10.10.15.254:2567`.
 
 ## 0. Inspect first (read-only)
 
@@ -45,7 +45,7 @@ the Docker socket to the network.
 ```bash
 cp .env.example .env
 nano .env     # set: NODE_ENV=production, SESSION_SECRET, POSTGRES_PASSWORD, ALLOWED_ORIGINS,
-              #      SERVER_BIND=10.10.42.88, TRUST_PROXY handled by compose, METRICS_TOKEN (optional)
+              #      SERVER_BIND=10.10.15.254, TRUST_PROXY handled by compose, METRICS_TOKEN (optional)
 chmod 600 .env
 # generate secrets:
 node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"   # SESSION_SECRET
@@ -61,7 +61,7 @@ Compose refuses to start without them. Secrets are never committed (`.env` is gi
 docker compose --env-file .env -f infra/docker/compose.prod.yml config > /dev/null && echo "compose OK"
 docker compose --env-file .env -f infra/docker/compose.prod.yml up -d --build
 docker compose --env-file .env -f infra/docker/compose.prod.yml ps
-curl -s http://10.10.42.88:2567/health          # {"ok":true,"db":"up"}
+curl -s http://10.10.15.254:2567/health          # {"ok":true,"db":"up"}
 sh infra/scripts/status.sh
 ```
 
@@ -110,7 +110,7 @@ git fetch && git log --oneline HEAD..origin/main        # review incoming change
 docker tag minigamehub-server:latest minigamehub-server:previous    # keep the old image
 git pull --ff-only
 docker compose --env-file .env -f infra/docker/compose.prod.yml up -d --build
-curl -s http://10.10.42.88:2567/health
+curl -s http://10.10.15.254:2567/health
 ```
 
 Rollback: `docker tag minigamehub-server:previous minigamehub-server:latest` and

@@ -3,7 +3,7 @@
 ## Overview
 
 ```
- Browser (GitHub Pages)                         Ubuntu VM (10.10.42.88)
+ Browser (GitHub Pages)                         Ubuntu VM (10.10.15.254)
 ┌──────────────────────────┐   HTTPS / WSS    ┌──────────────┐   HTTP/WS    ┌───────────────────────────────┐
 │ React + Phaser (static)  │ ───────────────► │ Existing     │ ───────────► │ Docker Compose                │
 │ https://trazhub.github.io│  backend.opop.   │ Nginx proxy  │   :2567      │  ┌─────────────────────────┐  │

@@ -47,7 +47,7 @@ numbers here before advertising any limit.
 | 3 | Dockerfile build (the bundle itself was verified; the image was not) | `docker build` on the VM | not run |
 | 4 | `nginx -t` and a reload with `infra/nginx/*` on the proxy host | [DNS_AND_NETWORKING.md](DNS_AND_NETWORKING.md) | not run; static checks only |
 | 5 | DNS: `backend.opop.eu.org` resolves to the Nginx host; ports 80/443 reachable from the internet | steps 1, 4, 5 of the sequence | **unknown** |
-| 6 | Nginx host can reach `10.10.42.88:2567` | step 2 | unknown |
+| 6 | Nginx host can reach `10.10.15.254:2567` | step 2 | unknown |
 | 7 | Real browser WebSocket through Nginx (`wss://`) | step 6 + open the Pages site | unknown |
 | 8 | CORS from `https://trazhub.github.io` in a real browser | console check | unknown |
 | 9 | Backup + restore round trip on the VM | [BACKUP_RESTORE.md](BACKUP_RESTORE.md) | not run |
@@ -79,7 +79,7 @@ numbers here before advertising any limit.
 1. [ ] Review `.env` values; generate `SESSION_SECRET`, `POSTGRES_PASSWORD` (never reuse the dev ones).
 2. [ ] Push the repo to `trazhub/Mini-Games`; enable Pages (Actions); confirm the workflow is green.
 3. [ ] On the VM: inspect `/home/mini-game`, free port 2567, create `/opt/minigamehub`.
-4. [ ] `docker compose ... config`, then `up -d --build`; confirm `/health` on `10.10.42.88:2567`.
+4. [ ] `docker compose ... config`, then `up -d --build`; confirm `/health` on `10.10.15.254:2567`.
 5. [ ] Nginx: install the site + snippet, `nginx -t`, reload.
 6. [ ] DNS: confirm `backend.opop.eu.org` -> Nginx (ask before any DNS change).
 7. [ ] Run verification steps 4-6 (HTTP, HTTPS, real WSS) from outside your network.

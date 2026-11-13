@@ -1,6 +1,6 @@
 # Cloudflare Tunnel (fallback)
 
-**Primary plan:** your existing Nginx forwards `backend.opop.eu.org` to `10.10.42.88:2567`
+**Primary plan:** your existing Nginx forwards `backend.opop.eu.org` to `10.10.15.254:2567`
 ([DNS_AND_NETWORKING.md](DNS_AND_NETWORKING.md)). Use this tunnel only if public inbound access to
 that Nginx is not possible. The tunnel makes only **outbound** connections from the VM, so no
 inbound ports or port-forwards are needed, and the origin (`server:2567`) stays private.

@@ -87,7 +87,7 @@ describe('nginx reverse proxy config', () => {
   const params = read('infra/nginx/mgh_proxy_params.conf');
   it('forwards backend.opop.eu.org to the VM on 2567 over HTTPS', () => {
     expect(site).toMatch(/server_name backend\.opop\.eu\.org;/);
-    expect(site).toMatch(/server 10\.10\.42\.88:2567;/);
+    expect(site).toMatch(/server 10\.10\.15\.254:2567;/);
     expect(site).toMatch(/listen 443 ssl;/);
     expect(site).toMatch(/return 301 https:\/\/\$host\$request_uri;/);
   });
