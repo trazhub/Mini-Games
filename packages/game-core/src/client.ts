@@ -1,4 +1,4 @@
-import type { GameMeta, PlayerPublic } from '@minigamehub/shared';
+import type { ArcadeChunk, GameMeta, PlayerPublic } from '@minigamehub/shared';
 
 export type ClientAction = { type: string; [k: string]: string | number | boolean | null };
 
@@ -34,4 +34,10 @@ export interface GameClientProps<S = unknown> {
   reportScores: (scores: Record<string, number>) => void;
   reducedMotion: boolean;
   sfx: (name: SfxName) => void;
+  /**
+   * Arcade games only: send one chunk of the recorded input log (`ArcadeRecorder.finish()`) as a
+   * `C2S.arcade` message. Optional until the web app provides it (apps/web GameView does not pass
+   * it yet); arcade game UIs should treat a missing `sendArcade` as "cannot submit".
+   */
+  sendArcade?: (chunk: ArcadeChunk) => void;
 }

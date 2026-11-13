@@ -4,3 +4,5 @@ export * from './ranking';
 export * from './timers';
 export * from './testing';
 export * from './client';
+export * from './arcade';
+export * from './arcade-client';

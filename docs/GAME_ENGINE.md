@@ -71,6 +71,74 @@ nobody acts, the party returns to the lobby after 60 s.
 a fake clock and calls `update`; `sent` records outgoing events; `result` captures `finish`. All
 launch games are unit-tested with it, and `OrbitSim` is deterministic for a given seed.
 
+## Arcade games
+
+Arcade games (`meta.kind: 'arcade'`) run in the browser at 60 fps for instant feel, but the score
+that counts is computed on the server. Build one with `createArcadePlugin({ meta, defaultConfig,
+sim })` from `game-core/src/arcade.ts`; the browser side uses `ArcadeRecorder`
+(`arcade-client.ts`) and `GameClientProps.sendArcade`.
+
+```ts
+interface ArcadeSim<Cfg> {
+  hz: number;                                   // sim ticks per second
+  maxTicks(cfg: Cfg): number;                   // hard cap on run length
+  replay(seed, cfg, events: InputEvent[]): { score: number; ticks: number };
+}
+interface InputEvent { tick: number; code: number } // code 0..255, game-defined
+```
+
+**Lifecycle**
+
+1. `start()` picks the seed (`config.seed` if it is an integer in 1..2147483647, otherwise
+   `ctx.rng`), and broadcasts `arcade:start { seed, config, deadlineMs }`. `deadlineMs` is the server
+   epoch deadline: `start + maxTicks / hz * 1000 + ARCADE.SUBMIT_GRACE_MS` (5 s grace).
+2. The browser runs the same sim from the seed, calls `recorder.record(tick, code)` for every
+   input and only applies inputs that `record` accepted (it drops what the server would reject).
+3. When the run ends the client sends `recorder.finish()` chunk by chunk as `arcade:chunk`
+   (`C2S.arcade`) messages `{ i, n, d }`.
+4. The server reassembles the chunks, decodes and validates the log, runs `sim.replay` and stores
+   **its own** score. Anything else the client sends (a "score" field, timings) is dropped by the
+   room before it reaches the game.
+5. The match ends as soon as every **connected** participant has submitted, or at the deadline.
+   Missing, late or invalid submissions score 0. A disconnected player never blocks the end. With
+   nobody connected the match waits for the deadline (players may still reconnect and submit).
+
+`getState(viewer)` is `{ seed, config, deadline, submitted: playerId[] }`: no scores before the end.
+`finish` sends every participant's replayed score with `summary: { seed }`.
+
+**Log format.** For each event: `varint(zigzag(tick - previousTick))` then `varint(code)`
+(unsigned LEB128, at most 4 bytes per varint; `previousTick` starts at 0), the whole byte string
+base64url-encoded without padding. Ticks are **non-decreasing**: two inputs on the same tick are
+fine (two keys on one frame); a backwards tick is rejected. The deltas are signed on purpose so a
+backwards tick is representable and caught by the decoder rather than hidden by the format.
+`decodeInputLog(data, maxTicks, hz = 60)` returns `null` (score 0) for: anything that is not strict
+canonical base64url, more than `ARCADE.MAX_LOG_BYTES` (12 000) decoded bytes, a truncated or
+over-long varint, a dangling tick without a code, a tick below 0 or above `maxTicks`, a code above
+255, or more than `ARCADE.MAX_EVENTS_PER_SEC` (15) events inside any window of `hz` ticks. The
+server always passes the sim's `hz`.
+
+**Chunking.** The global 2 KB message limit stays, so logs travel in at most `ARCADE.MAX_CHUNKS`
+(16) chunks of at most `ARCADE.CHUNK_CHARS` (1400) characters. `splitChunks(log)` produces them
+(an empty log is one empty chunk, which still counts as a submission). `ChunkAssembler` ignores
+duplicate indexes (first copy wins) and out-of-range or malformed chunks; a chunk whose `n`
+differs from the first one poisons that player's submission (score 0). Once a player has
+submitted, further chunks from them are ignored.
+
+**Determinism rules for sims.** The same sim module runs in the browser and on the server, so:
+
+- no `Date`, `performance.now()`, `Math.random()`, DOM, timers or I/O inside the sim; time is the
+  tick number and randomness comes from `createRng(seed)`;
+- prefer integer math (fixed-point positions, integer velocities); where floats are needed use
+  plain `+ - * /` and avoid `Math.sin`/`Math.exp` style functions whose last bits may differ
+  between engines, or quantise their results;
+- iterate arrays in index order (not over object keys with numeric-looking names) and never
+  depend on sort stability of equal elements;
+- `replay` must be pure: same `(seed, cfg, events)` gives the same `{ score, ticks }`.
+
+A sim that throws or returns a non-finite score gives that player 0; it never crashes the room.
+
+In short: replay stops forged scores but not scripted perfect play; leaderboards are for fun.
+
 ## Scoring rules of the launch games
 
 **Majority Trap** (`scoring.ts`): per round, only players who answered count. Correct prediction

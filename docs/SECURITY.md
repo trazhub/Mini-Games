@@ -10,6 +10,7 @@ and server is hostile; the public endpoint is reachable by anyone.
 | All clients untrusted; no forged scores | Clients send intents only; server simulates/scores; scores never accepted from clients | `security.test.ts` (forged score/position, extra fields), `orbit-swap.test.ts` |
 | Server-issued identity | HMAC-signed guest token (`sub`, `exp`); identity = token subject, never a nickname or client-sent id | `security.test.ts` (forged/tampered/expired tokens, id spoofing) |
 | Long-lived identity and recovery | Sliding ~1 year tokens; invalid tokens fall back to a new guest; optional recovery code stored only as a derived-key HMAC, restore limited to 10/min/IP | `identity.test.ts` |
+| Arcade scores (browser-run games) | Server replays the submitted input log through the game's own sim and keeps only its score; strict log validation and caps (see below) | `arcade.test.ts` (game-core and server) |
 | Host cannot abuse powers | Host-only: select/start/rematch/backToLobby/kick; host cannot edit scores/identities, exceed capacity or kick themselves | `security.test.ts` (host authorization) |
 | Capacity | 12 per party, per-game min/max enforced at start; `MAX_ROOMS` | `rooms.test.ts` (full room) |
 | Duplicate actions | First submission locks; replays rejected with a reason | `security.test.ts`, game unit tests |
@@ -23,6 +24,34 @@ and server is hostile; the public endpoint is reachable by anyone.
 | Output sanitisation | Nicknames: NFKC, control/bidi/zero-width removed, `<` `>` removed, 2-16 chars, deduplicated; React escapes all output | `rooms.test.ts`, `security.test.ts` |
 | Secrets | `.env` git-ignored; production requires `SESSION_SECRET`; no secrets in `VITE_*`; `/metrics` private | `infra.test.ts` |
 | Containers | non-root, read-only filesystem, `cap_drop: ALL`, `no-new-privileges`, DB not published, no Docker socket | `infra.test.ts` |
+
+## Arcade games: threats and limits
+
+Arcade games run in the browser (see `docs/GAME_ENGINE.md`, "Arcade games"). The client sends its
+input log in `arcade:chunk` messages; the server replays it.
+
+- **Forged score.** No score is ever read from the client. The room forwards only `{ i, n, d }`
+  of each chunk to the game, and the game uses the score from `sim.replay(seed, cfg, events)`.
+  A log with impossible input (ticks past the cap, backwards ticks, more than 15 events per
+  second of ticks, codes above 255) is rejected as a whole and scores 0.
+- **Log bombs.** A log is at most 16 chunks x 1400 characters by schema, the decoder rejects
+  anything over 16 000 characters before decoding and anything over 12 000 decoded bytes, varints
+  are capped at 4 bytes, and the replay is bounded by the sim's `maxTicks`. Each player's log is
+  replayed at most once per match. Decoding is strict base64url (the chunk schema itself does not
+  restrict the alphabet) and never throws.
+- **Chunk flooding.** Chunks go through the same per-connection token bucket and strike counter
+  as every other message: a malformed chunk (bad types, `i >= n`, `i > 15`, `n > 16`, data over 1400
+  characters) is a strike, and 8 strikes in 10 s disconnect. Valid-shape abuse (duplicates,
+  mixed `n`, chunks after submitting, chunks from spectators or outside a match) is ignored; mixed
+  `n` only zeroes the sender's own score. Memory per player is bounded by the schema and
+  released on submission.
+- **Never submitting / disconnecting.** The match ends at
+  `start + maxTicks / hz * 1000 + 5 s` on the server clock regardless of clients, with 0 for
+  anyone who did not submit. It ends earlier once every connected participant has submitted, so
+  a disconnected or silent player cannot hold the others hostage.
+- **Not prevented.** Replay proves a score is reachable from the inputs, not that a human produced
+  them: a bot can play perfectly, or compute an optimal run offline and submit it. In short:
+  replay stops forged scores but not scripted perfect play; leaderboards are for fun.
 
 ## Nicknames are labels, not credentials
 

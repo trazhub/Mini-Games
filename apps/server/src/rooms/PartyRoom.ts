@@ -18,6 +18,7 @@ import {
   CLOSE_CODES,
   LIMITS,
   actionSchema,
+  arcadeChunkSchema,
   emptySchema,
   gameIdSchema,
   generateRoomCode,
@@ -253,6 +254,9 @@ export class PartyRoom extends Room implements RoomHandle {
     on(C2S.backToLobby, emptySchema, (m) => this.onBackToLobby(m));
     on(C2S.kick, kickSchema, (m, d) => this.onKick(m, d.playerId));
     on(C2S.action, actionSchema, (m, d) => this.onAction(m, d as RawAction));
+    // Arcade input-log chunks: shape-checked here (bad shape = strike), then only {i, n, d} reach the
+    // game (any extra field such as a claimed score is dropped). Same participant/phase gate as actions.
+    on(C2S.arcade, arcadeChunkSchema, (m, d) => this.onAction(m, { type: C2S.arcade, i: d.i, n: d.n, d: d.d }));
 
     // Anything else is a protocol violation, but never fatal by itself.
     this.onMessage('*', (client: Client) => {
