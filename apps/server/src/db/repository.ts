@@ -68,6 +68,9 @@ export function createPgRepository(db: AnyPgDb, closeFn: () => Promise<void>): R
           summary: m.summary ?? null,
         });
         for (const p of m.participants) {
+          // A win needs an opponent: a solo match is rank 1 but never a win (same rule as the
+          // live party `wins` counter in PartyRoom.completeMatch).
+          const win = m.participants.length > 1 && p.rank === 1 ? 1 : 0;
           await tx.insert(guests).values({ id: p.guestId }).onConflictDoNothing();
           await tx.insert(matchParticipants).values({
             matchId: m.matchId,
@@ -80,12 +83,12 @@ export function createPgRepository(db: AnyPgDb, closeFn: () => Promise<void>): R
           });
           await tx
             .insert(playerStats)
-            .values({ guestId: p.guestId, gamesPlayed: 1, wins: p.rank === 1 ? 1 : 0, totalScore: p.score })
+            .values({ guestId: p.guestId, gamesPlayed: 1, wins: win, totalScore: p.score })
             .onConflictDoUpdate({
               target: playerStats.guestId,
               set: {
                 gamesPlayed: sql`${playerStats.gamesPlayed} + 1`,
-                wins: sql`${playerStats.wins} + ${p.rank === 1 ? 1 : 0}`,
+                wins: sql`${playerStats.wins} + ${win}`,
                 totalScore: sql`${playerStats.totalScore} + ${p.score}`,
                 updatedAt: sql`now()`,
               },

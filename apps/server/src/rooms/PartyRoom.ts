@@ -548,7 +548,9 @@ export class PartyRoom extends Room implements RoomHandle {
       const partyPoints = partyPointsForRank(r.rank, n);
       if (live) {
         live.points += partyPoints;
-        if (r.rank === 1) live.wins++;
+        // A win needs an opponent: a solo finish (n === 1) is rank 1 but never a win.
+        // The same rule is enforced for persisted stats in db/repository.ts (recordMatch).
+        if (n > 1 && r.rank === 1) live.wins++;
       }
       return { playerId: r.playerId, name: live?.name ?? p.name, avatar: live?.avatar ?? p.avatar, score: r.score, rank: r.rank, partyPoints };
     });

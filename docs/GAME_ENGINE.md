@@ -60,7 +60,8 @@ and uses `broadcast('snap', ...)` directly; the full state is only pushed on pha
 
 `finish({ scores })` ranks players with standard competition ranking ("1224": equal score and
 tiebreak share a rank), awards **party points** `max(1, min(n, 5) - (rank - 1))`, increments
-`wins` for rank 1, stores the match, and moves the party to `results`. The host can then
+`wins` for rank 1 (only when at least 2 players took part; a solo finish still gets rank 1 and 1
+party point but never counts as a win, in the party or in stored stats), stores the match, and moves the party to `results`. The host can then
 `rematch` (same game, new match id), `selectGame` + `start` (switch games), or `backToLobby`. If
 nobody acts, the party returns to the lobby after 60 s.
 

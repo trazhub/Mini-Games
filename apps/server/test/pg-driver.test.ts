@@ -53,7 +53,11 @@ describe('node-postgres driver against a real PostgreSQL server', () => {
       gameId: 'orbit-swap',
       startedAt: Date.now() - 1000,
       endedAt: Date.now(),
-      participants: [{ guestId: g, nickname: 'Pg', avatar: 'fox', score: 120, rank: 1, partyPoints: 3 }],
+      // two participants: a win needs an opponent (solo matches never count as wins)
+      participants: [
+        { guestId: g, nickname: 'Pg', avatar: 'fox', score: 120, rank: 1, partyPoints: 3 },
+        { guestId: crypto.randomUUID(), nickname: 'Rival', avatar: 'gem', score: 80, rank: 2, partyPoints: 2 },
+      ],
     });
     expect(await repo!.getStats(g)).toEqual({ gamesPlayed: 1, wins: 1, totalScore: 120 });
     const again = await connectPostgres(`postgres://mgh:mgh-test-pass@127.0.0.1:${PORT}/minigamehub`); // re-migrate
