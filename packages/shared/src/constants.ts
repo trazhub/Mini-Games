@@ -48,6 +48,25 @@ export const CATEGORY_LABELS: Record<GameCategory, string> = {
   memory: 'Memory',
 };
 
+/** How a game is played: together (party), arcade (solo score chase, replay-verified), action (realtime). */
+export const GAME_KINDS = ['together', 'arcade', 'action'] as const;
+export type GameKind = (typeof GAME_KINDS)[number];
+
+export const KIND_LABELS: Record<GameKind, string> = {
+  together: 'Together',
+  arcade: 'Arcade',
+  action: 'Action',
+};
+
+/** Limits for arcade score submission (input logs sent as base64url chunks). */
+export const ARCADE = {
+  MAX_CHUNKS: 16,
+  CHUNK_CHARS: 1400,
+  MAX_LOG_BYTES: 12000,
+  MAX_EVENTS_PER_SEC: 15,
+  SUBMIT_GRACE_MS: 5000,
+} as const;
+
 /** Alphabet without look-alike characters (no 0/O, 1/I/L). */
 export const ROOM_CODE_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 

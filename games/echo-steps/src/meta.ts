@@ -7,6 +7,8 @@ export const echoStepsMeta: GameMeta = {
   description:
     'A glowing pattern plays for everyone at once. Repeat it perfectly before time runs out - each round adds one more step. One wrong pad and you’re out; the last echo standing wins.',
   category: 'reaction',
+  kind: 'together',
+  solo: false,
   tags: ['reaction', 'memory'],
   minPlayers: 2,
   maxPlayers: 10,

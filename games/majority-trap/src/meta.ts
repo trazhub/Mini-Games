@@ -7,6 +7,8 @@ export const majorityTrapMeta: GameMeta = {
   description:
     'Every round asks a two-way question. Secretly choose your answer and predict which answer the group will pick LESS. Be right about the crowd - or be the lone wolf - to score.',
   category: 'party',
+  kind: 'together',
+  solo: false,
   tags: ['party', 'social'],
   minPlayers: 3,
   maxPlayers: 12,

@@ -7,6 +7,8 @@ export const orbitSwapMeta: GameMeta = {
   description:
     'Everyone circles the same planet on three orbital lanes. Swap lanes to collect stars, flip direction to dodge drifting asteroid arcs, and out-score your friends before the clock runs out.',
   category: 'arcade',
+  kind: 'action',
+  solo: false,
   tags: ['arcade', 'reaction'],
   minPlayers: 2,
   maxPlayers: 8,

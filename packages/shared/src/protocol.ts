@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { AVATAR_IDS } from './constants';
+import { ARCADE, AVATAR_IDS } from './constants';
 
 /** Client -> server message names. */
 export const C2S = {
@@ -12,6 +12,7 @@ export const C2S = {
   rematch: 'rematch',
   backToLobby: 'backToLobby',
   action: 'g:action',
+  arcade: 'arcade:chunk',
   ping: 'ping',
 } as const;
 
@@ -47,7 +48,39 @@ export type JoinOptions = z.infer<typeof joinOptionsSchema>;
 
 export const guestRequestSchema = z.object({
   nickname: z.string().max(64).optional(),
+  /** Recovery/resume token from a previous session, to keep the same guest identity. */
+  resumeToken: z.string().max(2048).optional(),
 });
+export type GuestRequest = z.infer<typeof guestRequestSchema>;
+
+/** One chunk of a base64url-encoded arcade input log. */
+export const arcadeChunkSchema = z
+  .object({
+    i: z.number().int().min(0).max(ARCADE.MAX_CHUNKS - 1),
+    n: z.number().int().min(1).max(ARCADE.MAX_CHUNKS),
+    d: z.string().max(ARCADE.CHUNK_CHARS),
+  })
+  .refine((c) => c.i < c.n, 'chunk index out of range');
+export type ArcadeChunk = z.infer<typeof arcadeChunkSchema>;
+
+export interface RestoreRequest {
+  code: string;
+}
+
+export interface RecoveryResponse {
+  code: string;
+}
+
+export interface BestEntry {
+  gameId: string;
+  mode: 'solo' | 'party' | 'daily';
+  best: number;
+  plays: number;
+}
+
+export interface BestsResponse {
+  bests: BestEntry[];
+}
 
 export interface GuestResponse {
   guestId: string;

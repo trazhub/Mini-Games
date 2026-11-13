@@ -1,4 +1,4 @@
-import type { AvatarId, GameCategory } from './constants';
+import type { AvatarId, GameCategory, GameKind } from './constants';
 
 /** Static, client-safe description of a mini-game. */
 export interface GameMeta {
@@ -7,6 +7,10 @@ export interface GameMeta {
   tagline: string;
   description: string;
   category: GameCategory;
+  /** How the game is played (party, solo arcade run, or realtime action). */
+  kind: GameKind;
+  /** Whether the game can be played alone without a party. */
+  solo: boolean;
   /** Additional categories shown in filters (e.g. a game can be both party and social). */
   tags: GameCategory[];
   minPlayers: number;
