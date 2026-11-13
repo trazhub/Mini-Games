@@ -35,6 +35,21 @@ Existing sites are untouched: the new file only adds a `server_name backend.opop
 three uniquely prefixed (`mgh_*`) zones/upstream/map. If the host already defines a
 `$connection_upgrade` map you may drop the `map` block and reuse yours.
 
+## First-time certificate (read before enabling)
+
+The 443 block references `/etc/letsencrypt/live/backend.opop.eu.org/`, which does not exist until a
+certificate is issued, so `nginx -t` fails if you enable the file as-is. On 2026-11-13 the host served
+a certificate for `opop.eu.org` only (SAN `opop.eu.org`), so `https://backend.opop.eu.org` failed with a
+name mismatch and fell through to another site. Either:
+
+- issue a certificate that covers `backend.opop.eu.org` first (the port-80 block already serves
+  `/.well-known/acme-challenge/` for HTTP-01), then enable the 443 block; or
+- if a wildcard or multi-name certificate is already managed on the host, point the two `ssl_certificate*`
+  lines at it instead.
+
+Confirm with: `openssl s_client -connect backend.opop.eu.org:443 -servername backend.opop.eu.org </dev/null | openssl x509 -noout -subject -ext subjectAltName`
+(the SAN list must include `backend.opop.eu.org`).
+
 ## Requirements the config satisfies
 
 - **TLS**: port 443 with a valid certificate for `backend.opop.eu.org`. Edit the two
