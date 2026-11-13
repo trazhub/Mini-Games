@@ -17,6 +17,7 @@
     "@colyseus/ws-transport": "^0.18.5",
     "@minigamehub/game-core": "*",
     "@minigamehub/game-echo-steps": "*",
+    "@minigamehub/game-lane-runner": "*",
     "@minigamehub/game-majority-trap": "*",
     "@minigamehub/game-orbit-swap": "*",
     "@minigamehub/shared": "*",

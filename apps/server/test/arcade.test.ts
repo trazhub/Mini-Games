@@ -1,7 +1,17 @@
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { PGlite } from '@electric-sql/pglite';
 import { ArcadeRecorder, createArcadePlugin, splitChunks, type ArcadeSim } from '@minigamehub/game-core';
-import type { GameMeta } from '@minigamehub/shared';
+import { LANE_LEFT, LANE_RIGHT, createRun, defaultLaneConfig, laneRunnerSim, runScore, stepRun } from '@minigamehub/game-lane-runner';
+import type { BestsResponse, GameMeta } from '@minigamehub/shared';
+import { drizzle } from 'drizzle-orm/pglite';
+import { migrate } from 'drizzle-orm/pglite/migrator';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { createPgRepository } from '../src/db/repository';
+import { ALL_GAMES } from '../src/games';
 import { Bot, makeParty, sleep, startTestServer, type TestServer } from './helpers';
+
+const migrationsFolder = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../drizzle');
 
 const counterMeta: GameMeta = {
   id: 'counter',
@@ -148,5 +158,54 @@ describe('arcade protocol through a real room', () => {
     await host!.until((b) => !!b.results, 5000, 'results');
     expect(host!.results!.rankings.map((r) => r.playerId)).toEqual([host!.playerId]);
     expect(scoreOf(host!, host!.playerId)).toBe(1);
+  });
+});
+
+describe('lane runner through the real registry', () => {
+  it('lane runner solo run through a real room records a solo best', async () => {
+    const client = new PGlite();
+    const db = drizzle(client);
+    await migrate(db, { migrationsFolder });
+    const real = await startTestServer({ repo: createPgRepository(db, async () => {}), games: ALL_GAMES, timing: { startDelayMs: 50 } });
+    try {
+      const [host] = track([await new Bot(real.url, 'Runner').create()]);
+      host!.send('selectGame', { gameId: 'lane-runner' });
+      await host!.until((b) => b.party!.selectedGameId === 'lane-runner', 3000, 'game selected');
+      host!.send('start');
+      await host!.until((b) => !!b.gameState && b.eventsOf('arcade:start').length > 0, 5000, 'arcade started');
+      const seed = host!.eventsOf('arcade:start')[0]!.seed as number;
+
+      // A perfect run recorded the way the client will: aim for the next row's coin or nearest free lane.
+      const run = createRun(seed, defaultLaneConfig);
+      const rec = new ArcadeRecorder(laneRunnerSim.hz);
+      while (!run.done) {
+        const row = run.rows[0]!;
+        const free = [0, 1, 2].filter((l) => (row.mask & (1 << l)) === 0);
+        const target = row.coin >= 0 ? row.coin : free.reduce((a, b) => (Math.abs(b - run.lane) < Math.abs(a - run.lane) ? b : a));
+        const code = run.lane > target ? LANE_LEFT : run.lane < target ? LANE_RIGHT : null;
+        if (code !== null) expect(rec.record(run.tick, code)).toBe(true);
+        stepRun(run, code);
+      }
+      const expected = runScore(run);
+      expect(expected).toBeGreaterThan(1000);
+
+      for (const c of rec.finish()) host!.send('arcade:chunk', { ...c, score: 1 });
+      await host!.until((b) => !!b.results, 5000, 'results');
+      expect(host!.results!.gameId).toBe('lane-runner');
+      expect(scoreOf(host!, host!.playerId)).toBe(expected);
+
+      // recordScores is fire-and-forget on the server; poll until the row shows up.
+      const getBests = async () =>
+        (await (await fetch(`${real.url}/api/me/bests`, { headers: { authorization: `Bearer ${host!.token}` } })).json()) as BestsResponse;
+      let got = await getBests();
+      for (let i = 0; i < 60 && got.bests.length === 0; i++) {
+        await sleep(50);
+        got = await getBests();
+      }
+      expect(got.bests).toEqual([{ gameId: 'lane-runner', mode: 'solo', best: expected, plays: 1 }]);
+    } finally {
+      await real.close();
+      await client.close();
+    }
   });
 });

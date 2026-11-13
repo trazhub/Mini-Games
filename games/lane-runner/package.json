@@ -1,0 +1,19 @@
+{
+  "name": "@minigamehub/game-lane-runner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./meta": "./src/meta.ts",
+    "./sim": "./src/sim.ts",
+    "./server": "./src/server.ts"
+  },
+  "dependencies": {
+    "@minigamehub/game-core": "*",
+    "@minigamehub/shared": "*"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}
