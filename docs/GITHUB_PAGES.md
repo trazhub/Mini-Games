@@ -5,8 +5,9 @@
 - Workflow: `.github/workflows/deploy-pages.yml`
 
 > **Status:** the workflow is written and statically checked, but nothing has been pushed or
-> deployed, and the repository has not been verified as live. The local `origin` is not
-> configured. Pushing needs your approval.
+> deployed, and the repository has not been verified as live. The local clone already has
+> `origin` set to `https://github.com/trazhub/Mini-Games.git` and `main` is ahead of `origin/main`;
+> pushing needs your approval.
 
 ## How the static build works
 
@@ -22,16 +23,16 @@
 
 ## One-time repository setup (needs the repo owner)
 
-1. Create/push the repository (see below).
+1. Make sure the repository exists on GitHub and push (see below).
 2. GitHub: **Settings -> Pages -> Build and deployment -> Source: GitHub Actions**.
 3. Push to `main`: the workflow runs typecheck, lint, tests, builds `apps/web`, uploads
    `apps/web/dist` and deploys it with `actions/deploy-pages@v4`.
 
-Pushing the existing local repository (only after you approve):
+Pushing the existing local repository (only after you approve; `origin` is already configured):
 
 ```powershell
-git remote add origin https://github.com/trazhub/Mini-Games.git
-git push -u origin main
+git fetch origin; git log --oneline origin/main..main    # review what will be published
+git push origin main
 ```
 
 ## What the workflow does
