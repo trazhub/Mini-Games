@@ -4,17 +4,17 @@
 
 | Fact | Status |
 | --- | --- |
-| VM LAN IP `10.10.15.254`, Tailscale `100.79.46.21`, gateway `10.10.1.1` | Given by you |
-| Outbound IPv4 `110.225.229.41` | Observed as the VM's **outbound** address only |
+| VM LAN IP `10.10.15.254`, Tailscale `<tailscale-ip>`, gateway `<gateway>` | Given by you |
+| Outbound IPv4 `<outbound-ip>` | Observed as the VM's **outbound** address only |
 | An existing Nginx server is the public reverse proxy for `backend.opop.eu.org` | Given by you |
-| Static IP `10.10.15.254/16` on `ens18` applied; default route via `10.10.1.1`; outbound internet and DNS work | Verified by you (gateway does not answer ICMP; that alone is not a fault) |
+| Static IP `10.10.15.254/16` on `ens18` applied; default route via `<gateway>`; outbound internet and DNS work | Verified by you (gateway does not answer ICMP; that alone is not a fault) |
 | Static IP persists across reboot; VM reachable from the wider LAN | **Not verified** |
-| Old IP `10.10.42.88` | Obsolete; must not be used |
+| Old IP `<old-vm-ip>` | Obsolete; must not be used |
 | `backend.opop.eu.org` resolves to that Nginx server and port 80/443 are reachable from the internet | **Not verified** |
 | Nginx can reach `10.10.15.254:2567` | **Not verified** |
 | Browser WebSockets through the proxy work | **Not verified** |
 
-Do not point DNS at `110.225.229.41` or assume inbound access from the outbound IP. The game VM
+Do not point DNS at `<outbound-ip>` or assume inbound access from the outbound IP. The game VM
 itself needs **no public inbound ports** in this design: only the Nginx host must be reachable, and
 only the Nginx host must reach the VM on 2567.
 

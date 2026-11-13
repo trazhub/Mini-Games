@@ -18,7 +18,7 @@ ls -lh /opt/minigamehub/backups
 ```
 
 Also copy backups **off the VM** (the volume and the backups share a disk). Example from your PC
-over Tailscale: `scp <user>@100.79.46.21:/opt/minigamehub/backups/minigamehub-*.dump .`
+over Tailscale: `scp <user>@<tailscale-ip>:/opt/minigamehub/backups/minigamehub-*.dump .`
 
 ## Restore (destructive: replaces the database)
 

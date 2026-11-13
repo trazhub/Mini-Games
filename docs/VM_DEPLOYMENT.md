@@ -1,7 +1,7 @@
 # Ubuntu VM deployment
 
-Target: `traz-vm` - Ubuntu 24.04.5 LTS, 6 vCPU, ~8 GB RAM, Docker Engine already installed
-(do **not** reinstall it). LAN `10.10.15.254`, Tailscale `100.79.46.21`.
+Target: `<vm-host>` - Ubuntu 24.04.5 LTS, 6 vCPU, ~8 GB RAM, Docker Engine already installed
+(do **not** reinstall it). LAN `10.10.15.254`, Tailscale `<tailscale-ip>`.
 
 > **Nothing here has been executed on the VM.** These steps are prepared and must be reviewed and
 > approved by you before running. Never run anything that changes firewall or DNS without
@@ -18,7 +18,7 @@ Target: `traz-vm` - Ubuntu 24.04.5 LTS, 6 vCPU, ~8 GB RAM, Docker Engine already
 ## 0. Inspect first (read-only)
 
 ```bash
-ssh <your-user>@100.79.46.21        # over Tailscale
+ssh <your-user>@<tailscale-ip>        # over Tailscale
 ls -la /home/mini-game              # inspect; do not overwrite anything there
 docker ps -a; docker volume ls      # see what already exists
 ss -tlnp                            # what listens where (is 2567 free?)

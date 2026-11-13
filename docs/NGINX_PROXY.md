@@ -11,11 +11,11 @@ Internet --HTTPS/WSS 443--> existing Nginx --HTTP/WS--> 10.10.15.254:2567 (Colys
 | Item | Value |
 |------|-------|
 | Public name | `backend.opop.eu.org` |
-| Upstream | `http://10.10.15.254:2567` (VM `traz-vm`, static IP, `/16`) |
+| Upstream | `http://10.10.15.254:2567` (VM `<vm-host>`, static IP, `/16`) |
 | Allowed browser origin | `https://trazhub.github.io` (origins carry no path) |
 | Frontend | `https://trazhub.github.io/Mini-Games/` |
 
-The old VM address `10.10.42.88` is obsolete and must not appear in any proxy configuration.
+The old VM address `<old-vm-ip>` is obsolete and must not appear in any proxy configuration.
 
 ## Files to install
 

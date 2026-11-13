@@ -1,5 +1,9 @@
 # MiniGameHub
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/trazhub/Mini-Games/actions/workflows/ci.yml/badge.svg)](https://github.com/trazhub/Mini-Games/actions/workflows/ci.yml)
+[![Pages](https://github.com/trazhub/Mini-Games/actions/workflows/deploy-pages.yml/badge.svg)](https://trazhub.github.io/Mini-Games/)
+
 A free multiplayer mini-game platform that runs in the browser: friends join a private room with a
 5-letter code, play short games together, and stay in the same party between games. No downloads,
 no mandatory accounts.
@@ -11,6 +15,16 @@ no mandatory accounts.
 - **Status** - everything below runs and is tested locally. **Nothing has been deployed**: the
   public endpoints and the GitHub repository have not been verified as live. See
   [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md).
+
+## Quickstart
+
+```
+git clone https://github.com/trazhub/Mini-Games.git && cd Mini-Games
+npm install
+npm run dev        # server on :2567, web on :5173
+# open http://localhost:5173 in two tabs
+npm run verify     # typecheck, lint, tests, build (the CI gate)
+```
 
 ## The three launch games
 
@@ -70,18 +84,25 @@ override the backend URL and base path (see [.env.example](.env.example)).
 ## Repository layout
 
 ```
-apps/web         React frontend (static build for GitHub Pages)
-apps/server      Colyseus game server, HTTP API, DB layer, Drizzle migrations
-packages/shared  Types, zod protocol schemas, constants shared by web and server
-packages/game-core  Game plugin interface, RNG, ranking, test harness
-games/*          One package per mini-game: meta, server plugin, client UI
-infra/           Dockerfile, compose files, Nginx config, backup/restore scripts
-e2e/             Playwright tests
-scripts/         Load test
-docs/            Architecture, protocol, deployment, security, roadmap...
+/ README.md  LICENSE  CONTRIBUTING.md  CODE_OF_CONDUCT.md  SECURITY.md  CHANGELOG.md
+.github/  workflows/ ISSUE_TEMPLATE/{bug_report,feature_request,new_game}.yml  PULL_REQUEST_TEMPLATE.md
+apps/server  apps/web           deployable apps (unchanged layout)
+packages/shared  packages/game-core   contracts + engine (game-core gains arcade.ts, arcade-client.ts)
+games/<id>/                     one package per game (+ games/lane-runner)
+infra/  scripts/  e2e/          deployment, tooling, browser tests
+docs/  README.md (index)  LEGAL.md  ...existing guides...  superpowers/{specs,plans}/
 ```
 
+Some entries (`arcade.ts`, `games/lane-runner`) are added by upcoming work. Today: `apps/web` is the
+React frontend, `apps/server` the Colyseus server and DB layer, `packages/shared` the protocol and
+types, `packages/game-core` the plugin interface, RNG and test harness, `infra/` the Docker, Nginx and
+backup files, `scripts/` the load test and the repository hygiene test.
+
 ## Documentation
+
+Full index: [docs/README.md](docs/README.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
+([Code of Conduct](CODE_OF_CONDUCT.md), [Security policy](SECURITY.md), [Legal notes](docs/LEGAL.md)).
+Licensed under the [MIT License](LICENSE).
 
 [Architecture](docs/ARCHITECTURE.md) · [Local development](docs/LOCAL_DEVELOPMENT.md) ·
 [Game engine](docs/GAME_ENGINE.md) · [Adding a game](docs/ADDING_A_GAME.md) ·

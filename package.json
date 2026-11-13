@@ -1,6 +1,15 @@
 {
   "name": "minigamehub",
   "private": true,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/trazhub/Mini-Games.git"
+  },
+  "bugs": {
+    "url": "https://github.com/trazhub/Mini-Games/issues"
+  },
+  "homepage": "https://trazhub.github.io/Mini-Games/",
   "version": "0.1.0",
   "type": "module",
   "description": "MiniGameHub - free multiplayer browser mini-game party platform",
