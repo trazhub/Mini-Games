@@ -24,7 +24,9 @@ mode is `solo` for a one-player match and `party` otherwise.
 
 Daily challenge runs live in table `daily_runs` (`day`, `game_id`, `guest_id`, `nickname`, `avatar`,
 `score`, `created_at`; primary key `(day, game_id, guest_id)`, so one run per guest, game and UTC day;
-the first write wins). The score is also upserted into `game_scores` with mode `daily`. `start` takes
+the row is inserted with score 0 when the daily match starts, which consumes the attempt, and the
+score is only ever raised on completion). The score is also upserted into `game_scores` with mode
+`daily`. A daily `start` needs a game of kind `arcade` and a party whose only member is the host. `start` takes
 an optional payload `{daily?: boolean}` (see "Daily challenge" in GAME_ENGINE.md); unknown fields are
 a protocol violation.
 
@@ -52,7 +54,7 @@ expired token (client fetches a new guest session and retries once), `4403` remo
 | `ready` | `{ready}` | non-host | lobby |
 | `selectGame` | `{gameId}` | host | lobby, results |
 | `vote` | `{gameId}` (toggle) | any | lobby, results |
-| `start` | none, `{}` or `{daily: true}` | host | lobby, results |
+| `start` | none, `{}` or `{daily: true}` (other fields are a protocol violation) | host | lobby, results |
 | `rematch` | - | host | results |
 | `backToLobby` | - | host | starting, playing (abort), results |
 | `kick` | `{playerId}` | host | any (not self) |

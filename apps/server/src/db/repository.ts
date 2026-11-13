@@ -78,6 +78,8 @@ export interface Repository {
    * `min(2147483647, max(0, round(score)))`.
    */
   recordDailyRun(entry: DailyRunEntry): Promise<void>;
+  /** Raises (never lowers) the score of an existing daily run; created_at (the tie-break) is untouched. */
+  updateDailyRunScore(day: string, gameId: string, guestId: string, score: number): Promise<void>;
   /** Top runs of a day and game by score (desc), earliest run first on ties; ranks are 1..n by position. */
   dailyTop(day: string, gameId: string, limit: number): Promise<DailyTopEntry[]>;
   ping(): Promise<boolean>;
@@ -96,6 +98,7 @@ export const noopRepository: Repository = {
   findGuestByRecoveryHash: async () => null,
   hasDailyRun: async () => false,
   recordDailyRun: async () => {},
+  updateDailyRunScore: async () => {},
   dailyTop: async () => [],
   ping: async () => true,
   close: async () => {},
@@ -218,6 +221,14 @@ export function createPgRepository(db: AnyPgDb, closeFn: () => Promise<void>): R
           .values({ day: e.day, gameId: e.gameId, guestId: e.guestId, nickname: e.nickname, avatar: e.avatar, score })
           .onConflictDoNothing();
       });
+    },
+    async updateDailyRunScore(day, gameId, guestId, score) {
+      if (!UUID_RE.test(guestId) || !Number.isFinite(score)) return;
+      const clamped = Math.min(MAX_INT, Math.max(0, Math.round(score)));
+      await db
+        .update(dailyRuns)
+        .set({ score: sql`greatest(${dailyRuns.score}, ${clamped})` })
+        .where(and(eq(dailyRuns.day, day), eq(dailyRuns.gameId, gameId), eq(dailyRuns.guestId, guestId)));
     },
     async dailyTop(day, gameId, limit) {
       const rows = await db

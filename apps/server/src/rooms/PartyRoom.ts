@@ -109,7 +109,7 @@ export class PartyRoom extends Room implements RoomHandle {
   /** Set while the one-attempt-per-day lookup of a daily start is in flight; other starts are ignored. */
   private startChecking = false;
   /** The daily challenge this match was accepted as (day fixed at start time), or null for a normal match. */
-  private dailyRun: { day: string; seed: number } | null = null;
+  private dailyRun: { day: string; seed: number; consumed?: Promise<unknown> } | null = null;
 
   // ---- lifecycle -------------------------------------------------------------------------
 
@@ -332,8 +332,9 @@ export class PartyRoom extends Room implements RoomHandle {
     if (!gameId || !plugin) return this.notice(m, 'warn', 'Pick a game first');
     const players = [...this.members.values()].filter((p) => p.client);
     // The daily challenge is a single-player arcade run: everyone gets the same seed and the board is
-    // only fair if nobody else is in the run. Spectators (not connected as players) do not count.
-    if (daily && (plugin.meta.kind !== 'arcade' || players.length !== 1)) {
+    // only fair if nobody else is in the party: the host must be the ONLY member, connected or not (a
+    // disconnected friend is still a member and may come back). Spectators only exist during a match.
+    if (daily && (plugin.meta.kind !== 'arcade' || this.members.size !== 1)) {
       return this.notice(m, 'warn', 'The daily challenge is for one player and an arcade game');
     }
     const { minPlayers, maxPlayers } = plugin.meta;
@@ -360,7 +361,7 @@ export class PartyRoom extends Room implements RoomHandle {
         if (played) return this.notice(m, 'warn', "You already played today's challenge");
         // The party may have changed while we waited: re-validate before committing.
         const now = [...this.members.values()].filter((p) => p.client);
-        const stillValid = (this.phase === 'lobby' || this.phase === 'results') && this.hostId === m.id && now.length === 1 && now[0]!.id === m.id;
+        const stillValid = (this.phase === 'lobby' || this.phase === 'results') && this.hostId === m.id && this.members.size === 1 && now.length === 1 && now[0]!.id === m.id;
         if (!stillValid) return this.notice(m, 'warn', 'The daily challenge could not start - try again');
         this.commitStart(gameId, now, { day, seed: dailySeed(gameId, day) });
       })
@@ -513,6 +514,18 @@ export class PartyRoom extends Room implements RoomHandle {
     this.phase = 'playing';
     this.startsAt = null;
     this.matchStartedAt = Date.now();
+    if (this.dailyRun) {
+      // The attempt is consumed NOW: a 0-score row (day fixed at start time) blocks a retry even if the
+      // player leaves. Completion only raises the score. Without a database this is a no-op.
+      const { day } = this.dailyRun;
+      this.dailyRun.consumed = Promise.all(
+        players.map((p) =>
+          this.rt.repo
+            .recordDailyRun({ day, gameId: plugin.meta.id, guestId: p.id, nickname: p.name, avatar: p.avatar, score: 0 })
+            .catch((err) => console.error('[db] recordDailyRun failed', err instanceof Error ? err.message : err)),
+        ),
+      );
+    }
     this.broadcast('game:start', { gameId: plugin.meta.id, matchId: cur.matchId, config, participantIds: this.participantIds });
     try {
       this.instance.start();
@@ -640,18 +653,23 @@ export class PartyRoom extends Room implements RoomHandle {
       })
       .catch((err) => console.error('[db] recordMatch failed', err instanceof Error ? err.message : err));
     // Personal bests: same snapshot-based participant count `n` as the win rule; a daily challenge is its
-    // own mode. Non-persistent players are skipped inside the repository.
+    // own mode, chosen from the match's daily flag and never from the participant count.
+    // Non-persistent players are skipped inside the repository.
     const mode = daily ? 'daily' : n === 1 ? 'solo' : 'party';
     void this.rt.repo
       .recordScores(rankings.map((r) => ({ guestId: r.playerId, gameId: results.gameId, mode, score: r.score })))
       .catch((err) => console.error('[db] recordScores failed', err instanceof Error ? err.message : err));
     if (daily) {
-      // The attempt counts once the match ends (a missing submission scored 0 above). Only the
+      // The 0-score row was written when the match started (attempt consumed); raise it to the final
+      // score (only if higher). recordDailyRun first guards against a failed start-time write. Only the
       // leaderboard fields are stored: nickname, avatar, score.
+      const consumed = daily.consumed ?? Promise.resolve();
       for (const r of rankings) {
-        void this.rt.repo
-          .recordDailyRun({ day: daily.day, gameId: results.gameId, guestId: r.playerId, nickname: r.name, avatar: r.avatar, score: r.score })
-          .catch((err) => console.error('[db] recordDailyRun failed', err instanceof Error ? err.message : err));
+        const entry = { day: daily.day, gameId: results.gameId, guestId: r.playerId, nickname: r.name, avatar: r.avatar, score: r.score };
+        void consumed
+          .then(() => this.rt.repo.recordDailyRun(entry))
+          .then(() => this.rt.repo.updateDailyRunScore(entry.day, entry.gameId, entry.guestId, entry.score))
+          .catch((err) => console.error('[db] daily run score failed', err instanceof Error ? err.message : err));
       }
     }
   }

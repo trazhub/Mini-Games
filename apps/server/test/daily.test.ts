@@ -99,8 +99,11 @@ describe('daily start rules', () => {
     await finishWithEmptyLog(host!);
 
     const expected = emptyLogScore(seed);
-    await waitFor(() => repo.hasDailyRun('2026-11-14', 'lane-runner', host!.guestId), 'daily run recorded');
-    expect(await repo.dailyTop('2026-11-14', 'lane-runner', 10)).toEqual([{ rank: 1, nickname: 'Racer', avatar: 'comet', score: expected }]);
+    const top = await waitFor(async () => {
+      const t = await repo.dailyTop('2026-11-14', 'lane-runner', 10);
+      return t[0]?.score === expected ? t : null;
+    }, 'daily score raised');
+    expect(top).toEqual([{ rank: 1, nickname: 'Racer', avatar: 'comet', score: expected }]);
     // The score also lands in the personal bests under the 'daily' mode, never 'solo'.
     const bests = await waitFor(async () => {
       const b = await repo.getBests(host!.guestId);
@@ -125,16 +128,68 @@ describe('daily start rules', () => {
     expect(host!.eventsOf('arcade:start')[0]!.seed).toBe(dailySeed('lane-runner', '2026-11-15'));
   });
 
-  it('a run that finishes after midnight still counts for the day it started', async () => {
+  it('finishing after midnight UTC still scores for the start day', async () => {
     clock = Date.UTC(2026, 11, 24, 23, 59, 0);
     const [host] = track([await new Bot(srv.url, 'Night').create()]);
     await select(host!, 'lane-runner');
     host!.send('start', { daily: true });
-    await arcadeSeed(host!);
+    const seed = await arcadeSeed(host!);
+    expect(seed).toBe(dailySeed('lane-runner', '2026-12-24'));
+    // The attempt is consumed at start: the 0-score row exists before any submission.
+    await waitFor(() => repo.hasDailyRun('2026-12-24', 'lane-runner', host!.guestId), 'run on the start day');
     clock = Date.UTC(2026, 11, 25, 0, 0, 30);
     await finishWithEmptyLog(host!);
-    await waitFor(() => repo.hasDailyRun('2026-12-24', 'lane-runner', host!.guestId), 'run on the start day');
+    const expected = emptyLogScore(seed);
+    expect(expected).toBeGreaterThan(0);
+    await waitFor(async () => (await repo.dailyTop('2026-12-24', 'lane-runner', 10))[0]?.score === expected, 'score on the start day');
     expect(await repo.hasDailyRun('2026-12-25', 'lane-runner', host!.guestId)).toBe(false);
+    expect(await repo.dailyTop('2026-12-25', 'lane-runner', 10)).toEqual([]);
+  });
+
+  it('leaving a daily match early still consumes the attempt', async () => {
+    clock = Date.UTC(2027, 5, 6, 10);
+    const [host] = track([await new Bot(srv.url, 'Quitter').create()]);
+    await select(host!, 'lane-runner');
+    host!.send('start', { daily: true });
+    await arcadeSeed(host!);
+    expect(await repo.dailyTop('2027-06-06', 'lane-runner', 10)).toEqual([{ rank: 1, nickname: 'Quitter', avatar: 'comet', score: 0 }]);
+
+    // Back to the lobby (abort) and retry in the same party: refused.
+    host!.send('backToLobby');
+    await host!.until((b) => b.party!.phase === 'lobby', 3000, 'lobby');
+    const before = host!.notices.length;
+    host!.send('start', { daily: true });
+    await host!.until((b) => b.notices.length > before, 3000, 'repeat notice');
+    expect(host!.notices.at(-1)).toMatch(/already played/i);
+    await sleep(250);
+    expect(host!.party!.phase).toBe('lobby');
+
+    // Leaving entirely and retrying from a fresh party with the same guest: refused too.
+    await host!.close();
+    const again = new Bot(srv.url, 'Quitter');
+    again.token = host!.token;
+    again.guestId = host!.guestId;
+    track([await again.create()]);
+    await select(again, 'lane-runner');
+    again.send('start', { daily: true });
+    await again.until((b) => b.notices.some((n) => /already played/i.test(n)), 3000, 'repeat notice in new party');
+    expect(again.party!.phase).toBe('lobby');
+    expect((await repo.dailyTop('2027-06-06', 'lane-runner', 10))[0]!.score).toBe(0);
+  });
+
+  it('daily start is refused when a disconnected second member is in the party', async () => {
+    clock = DAY_1;
+    const players = track(await makeParty(srv.url, 2));
+    const [host, guest] = players as [Bot, Bot];
+    guest.drop();
+    await host.until((b) => b.party!.players.some((p) => !p.connected), 3000, 'second member disconnected');
+    expect(host.party!.players).toHaveLength(2);
+    await select(host, 'lane-runner');
+    host.send('start', { daily: true });
+    await host.until((b) => b.notices.some((n) => /daily/i.test(n)), 3000, 'daily notice');
+    await sleep(250);
+    expect(host.party!.phase).toBe('lobby');
+    expect(await repo.hasDailyRun('2026-11-14', 'lane-runner', host.guestId)).toBe(false);
   });
 
   it('two guests get the same seed on the same day', async () => {
@@ -185,6 +240,23 @@ describe('daily start rules', () => {
 });
 
 describe('daily repository', () => {
+  it('updateDailyRunScore only raises the score and keeps the run order', async () => {
+    const [a, b] = [randomUUID(), randomUUID()];
+    const base = { day: '2040-04-04', gameId: 'lane-runner', avatar: 'comet' };
+    await repo.recordDailyRun({ ...base, guestId: a, nickname: 'A', score: 0 });
+    await sleep(10);
+    await repo.recordDailyRun({ ...base, guestId: b, nickname: 'B', score: 0 });
+    await repo.updateDailyRunScore(base.day, base.gameId, b, 50);
+    await repo.updateDailyRunScore(base.day, base.gameId, b, 20);
+    await repo.updateDailyRunScore(base.day, base.gameId, a, 50);
+    await repo.updateDailyRunScore(base.day, base.gameId, randomUUID(), 99); // unknown run: no-op
+    // A and B tie on 50: A started first, so A ranks first. B's lower update never lowered it.
+    expect((await repo.dailyTop(base.day, base.gameId, 10)).map((e) => [e.nickname, e.score])).toEqual([
+      ['A', 50],
+      ['B', 50],
+    ]);
+  });
+
   it('records, detects and keeps the first run per guest and day', async () => {
     const g = randomUUID();
     expect(await repo.hasDailyRun('2040-01-01', 'lane-runner', g)).toBe(false);

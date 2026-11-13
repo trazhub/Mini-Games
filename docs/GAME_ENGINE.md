@@ -148,16 +148,19 @@ Arcade games can be played as a **daily challenge**: one shared board per game a
   arcade seed range by keeping the low 31 bits (0 maps to 1). It is **fixed forever**: it defines every
   historic board, and the pinned literals in `daily.test.ts` guard it. Everyone sees the same course.
 - **Starting.** The host sends `start` with `{ daily: true }`. It is accepted only for a game whose
-  `kind` is `arcade` and a party with exactly one player; otherwise a warn notice is sent and nothing
-  starts. The seed is injected into this match's config only; saved/ops config is not changed.
-- **One attempt per UTC day** per guest and game. The day is fixed when the start is accepted, so a
-  run that ends after midnight UTC still counts for the day it began. A second start that day gets the
-  notice "You already played today's challenge". The attempt is recorded when the match completes
-  (a run with no valid submission records 0); a match aborted before it completes (back to lobby,
-  server restart) records nothing and can be retried.
-- **Recorded.** On completion the score goes to `game_scores` with mode `daily` and to `daily_runs`
-  (day, game, guest, nickname, avatar, score). Nothing else is stored; the public board
-  (`GET /api/daily/:gameId`) exposes nickname, avatar, score and rank only, never guest ids.
+  `kind` is `arcade` and a party whose only member is the host (a second member, even a disconnected
+  one, refuses it); otherwise a warn notice is sent and nothing starts. The seed is injected into this
+  match's config only; saved/ops config is not changed.
+- **One attempt per UTC day** per guest and game, consumed when an accepted daily match STARTS: a
+  `daily_runs` row with score 0 is written at that moment. Leaving, going back to the lobby or a
+  server restart mid-run does not give the attempt back; a second start that day gets the notice
+  "You already played today's challenge". The day is fixed at start, so a run that ends after midnight
+  UTC still scores for the day it began.
+- **Recorded.** The score stays 0 until a run is submitted; on completion it is raised to the verified
+  score (never lowered) in `daily_runs` (day, game, guest, nickname, avatar, score) and written to
+  `game_scores` with mode `daily` (chosen from the match's daily flag, never as `party`/`solo`). Nothing
+  else is stored; the public board (`GET /api/daily/:gameId`) exposes nickname, avatar, score and rank
+  only, never guest ids. Ties rank the earlier-started run first.
 - **Needs the database.** Without `DATABASE_URL` the daily start still works (same seed) but there is
   no repeat protection and no leaderboard.
 
