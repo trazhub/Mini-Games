@@ -82,7 +82,12 @@ export function createGameServer(opts: CreateServerOptions): GameServer {
       'Access-Control-Max-Age': '600',
       Vary: 'Origin',
     };
-    if (origin && isOriginAllowed(config, origin)) out['Access-Control-Allow-Origin'] = origin;
+    if (origin && isOriginAllowed(config, origin)) {
+      out['Access-Control-Allow-Origin'] = origin;
+      // The Colyseus SDK issues matchmaking fetches with credentials: "include"; browsers then
+      // require this header AND a non-wildcard origin (we echo only allow-listed origins).
+      out['Access-Control-Allow-Credentials'] = 'true';
+    }
     return out;
   };
 

@@ -14,7 +14,7 @@ describe('room expiration', () => {
       while (Date.now() < deadline && srv.app.runtime.rooms.size > 0) await sleep(100);
       expect(srv.app.runtime.rooms.size).toBe(0);
       expect(srv.app.runtime.codes.has(code)).toBe(false);
-      const info = await fetch(`${srv.url}/api/rooms/${code}`).then((r) => r.json());
+      const info = (await fetch(`${srv.url}/api/rooms/${code}`).then((r) => r.json())) as { exists: boolean };
       expect(info.exists).toBe(false);
       await expect(new Bot(srv.url, 'Late').join(code)).rejects.toThrow();
     } finally {

@@ -30,6 +30,8 @@ describe('origin and rate limit enforcement', () => {
   it('sets matchmaking CORS headers for allowed origins only', async () => {
     const good = await fetch(`${srv.url}/matchmake/create/party`, { method: 'OPTIONS', headers: { origin: 'https://good.example' } });
     expect(good.headers.get('access-control-allow-origin')).toBe('https://good.example');
+    // Regression: the SDK uses credentials:"include", which browsers only allow with this header.
+    expect(good.headers.get('access-control-allow-credentials')).toBe('true');
     const evil = await fetch(`${srv.url}/matchmake/create/party`, { method: 'OPTIONS', headers: { origin: 'https://evil.example' } });
     expect(evil.headers.get('access-control-allow-origin')).toBeNull();
   });

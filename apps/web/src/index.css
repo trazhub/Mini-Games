@@ -1,0 +1,147 @@
+@import 'tailwindcss';
+
+/*
+ * Design tokens. Surfaces step up in lightness: midnight (page) < slate (panels) < hull (raised).
+ * Each launch game owns one accent; "pulse" is the platform colour.
+ */
+@theme {
+  --color-midnight: #0b1226;
+  --color-slate: #151b30;
+  --color-hull: #1e2640;
+  --color-edge: #2b3558;
+  --color-chalk: #e9eeff;
+  --color-mist: #a3aed6;
+  --color-pulse: #8b7cff;
+  --color-pulse-deep: #6a5af0;
+  --color-coral: #ff6b5e;
+  --color-mint: #3ddbb0;
+  --color-amber: #ffb547;
+  --font-display: 'Bricolage Grotesque Variable', 'Trebuchet MS', system-ui, sans-serif;
+  --font-sans: 'DM Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --radius-pill: 999px;
+  --shadow-lift: 0 14px 40px -16px rgb(3 6 20 / 0.8);
+  --animate-orbit: orbit 26s linear infinite;
+}
+
+@keyframes orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes orbit-rev {
+  to {
+    transform: rotate(-360deg);
+  }
+}
+@keyframes pop {
+  0% {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgb(139 124 255 / 0.55);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgb(139 124 255 / 0);
+  }
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html {
+  background: var(--color-midnight);
+  scroll-padding-top: 5rem;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  background:
+    radial-gradient(60rem 36rem at 85% -10%, rgb(139 124 255 / 0.14), transparent 60%),
+    radial-gradient(44rem 30rem at -10% 20%, rgb(61 219 176 / 0.07), transparent 60%), var(--color-midnight);
+  color: var(--color-chalk);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+  text-wrap: balance;
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-amber);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+::selection {
+  background: var(--color-pulse);
+  color: white;
+}
+
+/* Reduced motion: honour both the OS preference and the in-app setting. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* Prevent the browser from hijacking touches on game surfaces. */
+.touch-game {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-5 py-2.5 text-[0.95rem] font-semibold transition duration-150 select-none;
+    @apply disabled:cursor-not-allowed disabled:opacity-45;
+  }
+  .btn-primary {
+    @apply bg-pulse text-midnight shadow-[0_8px_24px_-10px_rgb(139_124_255/0.9)] hover:bg-[#a094ff] active:translate-y-px;
+  }
+  .btn-soft {
+    @apply bg-hull text-chalk ring-1 ring-edge hover:bg-[#262f50] active:translate-y-px;
+  }
+  .btn-ghost {
+    @apply text-mist hover:bg-hull hover:text-chalk;
+  }
+  .btn-danger {
+    @apply bg-coral/15 text-coral ring-1 ring-coral/40 hover:bg-coral/25;
+  }
+  .field {
+    @apply min-h-11 w-full rounded-xl bg-midnight px-4 py-2.5 text-chalk ring-1 ring-edge placeholder:text-mist/60 focus:ring-2 focus:ring-pulse focus:outline-none;
+  }
+  .panel {
+    @apply rounded-3xl bg-slate ring-1 ring-edge/70;
+  }
+}
