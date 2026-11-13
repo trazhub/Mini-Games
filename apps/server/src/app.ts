@@ -58,7 +58,7 @@ export function createGameServer(opts: CreateServerOptions): GameServer {
       unclaimedTtlMs: 30_000,
       ...opts.timing,
     },
-    gameConfig: opts.gameConfig ?? {},
+    gameConfig: opts.gameConfig ?? config.gameConfigOverrides,
     joinLimiter: new KeyedWindowLimiter(config.JOIN_RATE_PER_MIN, 60_000),
     metrics,
     codes: new Set(),

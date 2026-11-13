@@ -2,7 +2,7 @@ import { AVATAR_IDS, LIMITS, ROOM_CODE_ALPHABET, type AvatarId } from './constan
 
 // Control chars, bidi overrides, zero-width chars and other invisible formatting.
 // eslint-disable-next-line no-control-regex
-const INVISIBLE = /[\u0000-\u001F\u007F-\u009F​-‏‪-‮⁠-⁯﻿]/g;
+const INVISIBLE = /[\u0000-\u001F\u007F-\u009F\u200B-\u200F\u202A-\u202E\u2060-\u206F\uFEFF]/g;
 const ANGLE = /[<>]/g;
 
 /**

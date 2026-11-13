@@ -32,10 +32,13 @@ const envSchema = z.object({
   MAX_ROOMS: z.coerce.number().int().min(1).default(500),
   /** Bearer token required for /metrics. Unset => /metrics only answers loopback requests. */
   METRICS_TOKEN: z.string().min(16).optional(),
+  /** JSON object { "<gameId>": { ...config } } - ops/test tuning of game durations. Never client-controlled. */
+  GAME_CONFIG_OVERRIDES: z.string().optional(),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
 });
 
-export type ServerConfig = Omit<z.infer<typeof envSchema>, 'ALLOWED_ORIGINS' | 'SESSION_SECRET'> & {
+export type ServerConfig = Omit<z.infer<typeof envSchema>, 'ALLOWED_ORIGINS' | 'SESSION_SECRET' | 'GAME_CONFIG_OVERRIDES'> & {
+  gameConfigOverrides: Record<string, Record<string, unknown>>;
   allowedOrigins: string[];
   anyOrigin: boolean;
   sessionSecret: string;
@@ -47,7 +50,15 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     const issues = parsed.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
     throw new Error(`Invalid environment configuration: ${issues}`);
   }
-  const { ALLOWED_ORIGINS, SESSION_SECRET, ...rest } = parsed.data;
+  const { ALLOWED_ORIGINS, SESSION_SECRET, GAME_CONFIG_OVERRIDES, ...rest } = parsed.data;
+  let gameConfigOverrides: Record<string, Record<string, unknown>> = {};
+  if (GAME_CONFIG_OVERRIDES) {
+    try {
+      gameConfigOverrides = z.record(z.string(), z.record(z.string(), z.unknown())).parse(JSON.parse(GAME_CONFIG_OVERRIDES));
+    } catch {
+      throw new Error('GAME_CONFIG_OVERRIDES must be a JSON object of objects');
+    }
+  }
   const allowedOrigins = ALLOWED_ORIGINS.split(',')
     .map((s) => s.trim().replace(/\/$/, ''))
     .filter(Boolean);
@@ -58,6 +69,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   }
   return {
     ...rest,
+    gameConfigOverrides,
     allowedOrigins,
     anyOrigin,
     // In dev/test a random per-process secret is fine; tokens simply expire on restart.

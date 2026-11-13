@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { Bot, makeParty, sleep, startTestServer, type TestServer } from './helpers';
+import { Bot, makeParty, startTestServer, type TestServer } from './helpers';
 
 let srv: TestServer;
 const bots: Bot[] = [];

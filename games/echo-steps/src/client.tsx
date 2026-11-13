@@ -15,11 +15,13 @@ export default function EchoStepsClient(props: GameClientProps<EchoState>) {
   const [flash, setFlash] = useState<{ pad: number; ok: boolean } | null>(null);
   const [now, setNow] = useState(0);
   const [localProgress, setLocalProgress] = useState(0);
+  /** Set the instant the server rejects one of my pads (before the round formally ends). */
+  const [wrong, setWrong] = useState(false);
   const lastStep = useRef(-1);
   /** Server-synced moment the input window opened (for the countdown bar). */
   const inputStart = useRef(0);
   const me_ = state?.players[me];
-  const canInput = !spectator && state?.phase === 'input' && me_?.status === 'active' && !me_.done;
+  const canInput = !spectator && state?.phase === 'input' && me_?.status === 'active' && !me_.done && !wrong;
 
   useEffect(() => {
     if (state) reportScores(state.scores);
@@ -38,6 +40,7 @@ export default function EchoStepsClient(props: GameClientProps<EchoState>) {
   // Reset per-round local state.
   useEffect(() => {
     setLocalProgress(0);
+    setWrong(false);
     setFlash(null);
     lastStep.current = -1;
   }, [state?.round]);
@@ -63,7 +66,10 @@ export default function EchoStepsClient(props: GameClientProps<EchoState>) {
         if (e.type === 'pad') {
           const ok = !!e.ok;
           setLocalProgress(Number(e.progress ?? 0));
-          if (!ok) sfx('bad');
+          if (!ok) {
+            setWrong(true);
+            sfx('bad');
+          }
           else if (e.done) sfx('good');
         }
       }),
@@ -109,8 +115,8 @@ export default function EchoStepsClient(props: GameClientProps<EchoState>) {
       : state.phase === 'watch'
         ? 'Watch…'
         : state.phase === 'input'
-          ? me_?.status === 'out'
-            ? 'You are out - watch the others'
+          ? me_?.status === 'out' || wrong
+            ? 'Wrong pad - you are out'
             : me_?.done
               ? 'Pattern complete!'
               : spectator
