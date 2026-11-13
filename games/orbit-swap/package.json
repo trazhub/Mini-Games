@@ -1,0 +1,26 @@
+{
+  "name": "@minigamehub/game-orbit-swap",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./meta": "./src/meta.ts",
+    "./server": "./src/server.ts",
+    "./client": "./src/client.tsx"
+  },
+  "dependencies": {
+    "@minigamehub/game-core": "*",
+    "@minigamehub/shared": "*",
+    "phaser": "^4.2.1"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0"
+  }
+}

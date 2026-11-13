@@ -1,0 +1,34 @@
+{
+  "name": "@minigamehub/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false src/main.ts",
+    "start": "node dist/main.js",
+    "build": "node scripts/build.mjs",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/db/migrate-cli.ts",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@colyseus/sdk": "^0.18.10",
+    "@colyseus/ws-transport": "^0.18.5",
+    "@minigamehub/game-core": "*",
+    "@minigamehub/game-echo-steps": "*",
+    "@minigamehub/game-majority-trap": "*",
+    "@minigamehub/game-orbit-swap": "*",
+    "@minigamehub/shared": "*",
+    "@colyseus/core": "^0.18.28",
+    "drizzle-orm": "^0.45.0",
+    "express": "^5.1.0",
+    "pg": "^8.16.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@types/express": "^5.0.0",
+    "@types/pg": "^8.15.0",
+    "drizzle-kit": "^0.31.0"
+  }
+}

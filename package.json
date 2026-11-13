@@ -1,0 +1,47 @@
+{
+  "name": "minigamehub",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "MiniGameHub - free multiplayer browser mini-game party platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "games/*"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,magenta \"npm run dev:server\" \"npm run dev:web\"",
+    "dev:web": "npm run dev -w @minigamehub/web",
+    "dev:server": "npm run dev -w @minigamehub/server",
+    "build": "npm run build:server && npm run build:web",
+    "build:web": "npm run build -w @minigamehub/web",
+    "build:server": "npm run build -w @minigamehub/server",
+    "preview": "npm run preview -w @minigamehub/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "db:generate": "npm run db:generate -w @minigamehub/server",
+    "db:migrate": "npm run db:migrate -w @minigamehub/server",
+    "loadtest": "tsx scripts/loadtest.ts",
+    "verify": "npm run typecheck && npm run lint && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "@playwright/test": "^1.65.0",
+    "@types/node": "^22.10.0",
+    "concurrently": "^9.2.0",
+    "esbuild": "^0.25.0",
+    "eslint": "^9.39.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^16.0.0",
+    "tsx": "^4.23.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.72.0",
+    "vitest": "^3.2.0"
+  }
+}
