@@ -17,7 +17,23 @@ Internet --HTTPS/WSS 443--> existing Nginx --HTTP/WS--> 10.10.15.254:2567 (Colys
 
 The old VM address `10.10.42.88` is obsolete and must not appear in any proxy configuration.
 
-## Files to install
+## Quick path (script, run on the Nginx host)
+
+Copy the `infra/nginx/` folder to the proxy host, then:
+
+```bash
+sudo ./install-proxy-host.sh http     # checks the VM is reachable, adds an HTTP-only proxy, nginx -t, reload
+curl -s http://backend.opop.eu.org/health
+sudo certbot certonly --webroot -w /var/www/html -d backend.opop.eu.org
+sudo ./install-proxy-host.sh tls      # swaps in the final HTTPS config, nginx -t, reload
+curl -s https://backend.opop.eu.org/health
+```
+
+The script only adds `backend.opop.eu.org.conf` and `snippets/mgh_proxy_params.conf`, backs up any
+existing copy, and restores it automatically if `nginx -t` fails. Both stages were syntax-checked with
+`nginx -t` (Nginx 1.2x container). They have not been run on your actual proxy host.
+
+## Files to install (manual alternative)
 
 | Repo file | Install as |
 |-----------|------------|
