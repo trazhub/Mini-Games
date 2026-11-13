@@ -11,9 +11,15 @@ in `packages/shared/src/{protocol,types}.ts` and are shared by client and server
 | `POST /api/guest` | Issue a guest session `{guestId, token, expiresAt}` | 30/min/IP; token valid 24 h |
 | `GET /api/rooms/:code` | `{exists, players, capacity, phase, joinable}` | 60/min/IP; no member names |
 | `GET /api/me/stats` | The caller's persisted stats | `Authorization: Bearer <token>` |
+| `GET /api/me/bests` | The caller's personal bests `{bests: [{gameId, mode, best, plays}]}` (`mode`: `solo`, `party`, `daily`), ordered by game then mode; `[]` without a database | `Authorization: Bearer <token>`; `401 unauthorized` otherwise |
 | `GET /health` | `{ok, db}` | used by Docker/monitoring |
 | `GET /metrics` | Process + game metrics | loopback or `METRICS_TOKEN` only; Nginx returns 404 publicly |
 | `POST /matchmake/create/party`, `/matchmake/joinById/party` | Colyseus seat reservation | Used by the SDK |
+
+Personal bests live in table `game_scores` (`guest_id`, `game_id`, `mode`, `best`, `plays`,
+`updated_at`; primary key `(guest_id, game_id, mode)`). Every finished match upserts each
+participant's score (`best = greatest(...)`, `plays + 1`, scores rounded and clamped to >= 0); the
+mode is `solo` for a one-player match and `party` otherwise.
 
 CORS: only origins in `ALLOWED_ORIGINS` get `Access-Control-Allow-Origin` (+ credentials, because
 the SDK uses `credentials: "include"`). WebSocket upgrades from other browser origins get 403.

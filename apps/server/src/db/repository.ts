@@ -1,6 +1,7 @@
-import { eq, sql } from 'drizzle-orm';
+import type { BestEntry } from '@minigamehub/shared';
+import { asc, eq, sql } from 'drizzle-orm';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
-import { guests, matchParticipants, matches, playerStats } from './schema';
+import { gameScores, guests, matchParticipants, matches, playerStats } from './schema';
 
 export interface MatchRecord {
   matchId: string;
@@ -25,11 +26,27 @@ export interface PlayerStats {
   totalScore: number;
 }
 
+export interface ScoreEntry {
+  guestId: string;
+  gameId: string;
+  mode: BestEntry['mode'];
+  score: number;
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export interface Repository {
   readonly enabled: boolean;
   upsertGuest(guestId: string): Promise<void>;
   recordMatch(match: MatchRecord): Promise<void>;
   getStats(guestId: string): Promise<PlayerStats | null>;
+  /**
+   * Upserts personal bests: `best = greatest(existing, score)`, `plays + 1`. Entries whose guestId is
+   * not a UUID (bots, test players) are skipped. Scores are stored as `max(0, round(score))`.
+   */
+  recordScores(entries: ScoreEntry[]): Promise<void>;
+  /** All bests of a guest, ordered by game id then mode. */
+  getBests(guestId: string): Promise<BestEntry[]>;
   /** Stores (replacing any previous) recovery-code hash for the guest, creating the row if needed. */
   setRecoveryHash(guestId: string, hash: string): Promise<void>;
   /** Guest id owning this recovery-code hash, or null. */
@@ -44,6 +61,8 @@ export const noopRepository: Repository = {
   upsertGuest: async () => {},
   recordMatch: async () => {},
   getStats: async () => null,
+  recordScores: async () => {},
+  getBests: async () => [],
   setRecoveryHash: async () => {},
   findGuestByRecoveryHash: async () => null,
   ping: async () => true,
@@ -106,6 +125,37 @@ export function createPgRepository(db: AnyPgDb, closeFn: () => Promise<void>): R
       const rows = await db.select().from(playerStats).where(eq(playerStats.guestId, guestId)).limit(1);
       const r = rows[0];
       return r ? { gamesPlayed: r.gamesPlayed, wins: r.wins, totalScore: r.totalScore } : null;
+    },
+    async recordScores(entries) {
+      // `best` is an integer shown to players, so fractional scores are rounded and negatives clamped to 0.
+      const valid = entries
+        .filter((e) => UUID_RE.test(e.guestId) && Number.isFinite(e.score))
+        .map((e) => ({ ...e, score: Math.max(0, Math.round(e.score)) }));
+      if (valid.length === 0) return;
+      await db.transaction(async (tx) => {
+        for (const e of valid) {
+          await tx.insert(guests).values({ id: e.guestId }).onConflictDoNothing();
+          await tx
+            .insert(gameScores)
+            .values({ guestId: e.guestId, gameId: e.gameId, mode: e.mode, best: e.score, plays: 1 })
+            .onConflictDoUpdate({
+              target: [gameScores.guestId, gameScores.gameId, gameScores.mode],
+              set: {
+                best: sql`greatest(${gameScores.best}, ${e.score})`,
+                plays: sql`${gameScores.plays} + 1`,
+                updatedAt: sql`now()`,
+              },
+            });
+        }
+      });
+    },
+    async getBests(guestId) {
+      const rows = await db
+        .select({ gameId: gameScores.gameId, mode: gameScores.mode, best: gameScores.best, plays: gameScores.plays })
+        .from(gameScores)
+        .where(eq(gameScores.guestId, guestId))
+        .orderBy(asc(gameScores.gameId), asc(gameScores.mode));
+      return rows.map((r) => ({ gameId: r.gameId, mode: r.mode as BestEntry['mode'], best: r.best, plays: r.plays }));
     },
     async setRecoveryHash(guestId, hash) {
       await db

@@ -587,6 +587,12 @@ export class PartyRoom extends Room implements RoomHandle {
         participants: rankings.map((r) => ({ guestId: r.playerId, nickname: r.name, avatar: r.avatar, score: r.score, rank: r.rank, partyPoints: r.partyPoints })),
       })
       .catch((err) => console.error('[db] recordMatch failed', err instanceof Error ? err.message : err));
+    // Personal bests: same snapshot-based participant count `n` as the win rule. Task 10 overrides
+    // the mode for daily challenges. Non-persistent players are skipped inside the repository.
+    const mode = n === 1 ? 'solo' : 'party';
+    void this.rt.repo
+      .recordScores(rankings.map((r) => ({ guestId: r.playerId, gameId: results.gameId, mode, score: r.score })))
+      .catch((err) => console.error('[db] recordScores failed', err instanceof Error ? err.message : err));
   }
 
   private toLobby(): void {

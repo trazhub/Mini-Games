@@ -51,3 +51,23 @@ export const playerStats = pgTable('player_stats', {
   totalScore: bigint('total_score', { mode: 'number' }).notNull().default(0),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * Personal best per guest, game and mode ('solo' | 'party' | 'daily'; kept as plain text so new
+ * modes never need a migration, the union is enforced in TypeScript). `plays` counts every recorded
+ * score, not only improvements.
+ */
+export const gameScores = pgTable(
+  'game_scores',
+  {
+    guestId: uuid('guest_id')
+      .notNull()
+      .references(() => guests.id, { onDelete: 'cascade' }),
+    gameId: text('game_id').notNull(),
+    mode: text('mode').notNull(),
+    best: integer('best').notNull(),
+    plays: integer('plays').notNull().default(1),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.guestId, t.gameId, t.mode] })],
+);

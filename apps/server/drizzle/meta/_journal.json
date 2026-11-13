@@ -15,6 +15,13 @@
       "when": 1794612046430,
       "tag": "0001_cooing_changeling",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794612362289,
+      "tag": "0002_pale_the_order",
+      "breakpoints": true
     }
   ]
 }

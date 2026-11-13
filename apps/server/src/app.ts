@@ -7,6 +7,7 @@ import {
   PARTY_ROOM_NAME,
   guestRequestSchema,
   normalizeRoomCode,
+  type BestsResponse,
   type GuestResponse,
   type RecoveryResponse,
   type RestoreRequest,
@@ -201,6 +202,17 @@ export function createGameServer(opts: CreateServerOptions): GameServer {
         if (!claims) return void res.status(401).json({ error: 'unauthorized' });
         try {
           res.json({ persisted: repo.enabled, stats: await repo.getStats(claims.sub) });
+        } catch {
+          res.status(503).json({ error: 'unavailable' });
+        }
+      });
+
+      app.get('/api/me/bests', async (req, res) => {
+        const claims = verifySession(config.sessionSecret, bearerToken(req));
+        if (!claims) return void res.status(401).json({ error: 'unauthorized' });
+        try {
+          const body: BestsResponse = { bests: await repo.getBests(claims.sub) };
+          res.json(body);
         } catch {
           res.status(503).json({ error: 'unavailable' });
         }
