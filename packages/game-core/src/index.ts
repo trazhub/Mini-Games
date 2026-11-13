@@ -6,3 +6,4 @@ export * from './testing';
 export * from './client';
 export * from './arcade';
 export * from './arcade-client';
+export * from './daily';

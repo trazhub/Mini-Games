@@ -71,3 +71,24 @@ export const gameScores = pgTable(
   },
   (t) => [primaryKey({ columns: [t.guestId, t.gameId, t.mode] })],
 );
+
+/**
+ * Daily challenge runs: one per guest, game and UTC day (the primary key), so a second attempt can
+ * never be recorded. Only what the public leaderboard shows is stored: nickname, avatar and score.
+ * `created_at` breaks score ties in favour of the earlier run.
+ */
+export const dailyRuns = pgTable(
+  'daily_runs',
+  {
+    day: text('day').notNull(),
+    gameId: text('game_id').notNull(),
+    guestId: uuid('guest_id')
+      .notNull()
+      .references(() => guests.id, { onDelete: 'cascade' }),
+    nickname: text('nickname').notNull(),
+    avatar: text('avatar').notNull(),
+    score: integer('score').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.gameId, t.guestId] }), index('daily_runs_board_idx').on(t.day, t.gameId, t.score)],
+);

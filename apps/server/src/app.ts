@@ -1,13 +1,14 @@
 import type { IncomingMessage } from 'node:http';
 import { defineRoom, defineServer, matchMaker, type Server } from '@colyseus/core';
 import { WebSocketTransport } from '@colyseus/ws-transport';
-import type { GamePlugin } from '@minigamehub/game-core';
+import { dayKey, type GamePlugin } from '@minigamehub/game-core';
 import {
   LIMITS,
   PARTY_ROOM_NAME,
   guestRequestSchema,
   normalizeRoomCode,
   type BestsResponse,
+  type DailyResponse,
   type GuestResponse,
   type RecoveryResponse,
   type RestoreRequest,
@@ -25,6 +26,8 @@ import { generateRecoveryCode, hashRecoveryCode, normalizeRecoveryCode } from '.
 import { issueGuestSession, refreshGuestSession, verifySession } from './session';
 
 const RESTORE_RATE_PER_MIN = 10;
+/** Entries returned by `GET /api/daily/:gameId`. */
+const DAILY_BOARD_SIZE = 50;
 
 export interface CreateServerOptions {
   config: ServerConfig;
@@ -34,6 +37,8 @@ export interface CreateServerOptions {
   timing?: Partial<Timing>;
   /** Per-game config overrides (tests / ops). */
   gameConfig?: Record<string, Record<string, unknown>>;
+  /** Wall clock override (tests): drives the daily challenge's UTC day. */
+  now?: () => number;
 }
 
 export interface GameServer {
@@ -65,6 +70,7 @@ export function createGameServer(opts: CreateServerOptions): GameServer {
       ...opts.timing,
     },
     gameConfig: opts.gameConfig ?? config.gameConfigOverrides,
+    now: opts.now ?? Date.now,
     joinLimiter: new KeyedWindowLimiter(config.JOIN_RATE_PER_MIN, 60_000),
     metrics,
     codes: new Set(),
@@ -195,6 +201,19 @@ export function createGameServer(opts: CreateServerOptions): GameServer {
           info.joinable = s.members < LIMITS.PARTY_MAX_PLAYERS;
         }
         res.json(info);
+      });
+
+      app.get('/api/daily/:gameId', async (req, res) => {
+        if (!lookupLimiter.allow(clientIp(req))) return void res.status(429).json({ error: 'rate_limited' });
+        const gameId = req.params.gameId ?? '';
+        if (runtime.games.get(gameId)?.meta.kind !== 'arcade') return void res.status(404).json({ error: 'unknown_game' });
+        const day = dayKey(runtime.now());
+        try {
+          const body: DailyResponse = { day, entries: await repo.dailyTop(day, gameId, DAILY_BOARD_SIZE) };
+          res.json(body);
+        } catch {
+          res.status(503).json({ error: 'unavailable' });
+        }
       });
 
       app.get('/api/me/stats', async (req, res) => {

@@ -139,6 +139,28 @@ A sim that throws or returns a non-finite score gives that player 0; it never cr
 
 In short: replay stops forged scores but not scripted perfect play; leaderboards are for fun.
 
+## Daily challenge
+
+Arcade games can be played as a **daily challenge**: one shared board per game and UTC day.
+
+- **Seed.** `dailySeed(gameId, day)` (`packages/game-core/src/daily.ts`) is the FNV-1a 32-bit hash of
+  the UTF-8 string `${gameId}:${day}` (`day` is `dayKey(now)`, UTC `YYYY-MM-DD`), reduced to the
+  arcade seed range by keeping the low 31 bits (0 maps to 1). It is **fixed forever**: it defines every
+  historic board, and the pinned literals in `daily.test.ts` guard it. Everyone sees the same course.
+- **Starting.** The host sends `start` with `{ daily: true }`. It is accepted only for a game whose
+  `kind` is `arcade` and a party with exactly one player; otherwise a warn notice is sent and nothing
+  starts. The seed is injected into this match's config only; saved/ops config is not changed.
+- **One attempt per UTC day** per guest and game. The day is fixed when the start is accepted, so a
+  run that ends after midnight UTC still counts for the day it began. A second start that day gets the
+  notice "You already played today's challenge". The attempt is recorded when the match completes
+  (a run with no valid submission records 0); a match aborted before it completes (back to lobby,
+  server restart) records nothing and can be retried.
+- **Recorded.** On completion the score goes to `game_scores` with mode `daily` and to `daily_runs`
+  (day, game, guest, nickname, avatar, score). Nothing else is stored; the public board
+  (`GET /api/daily/:gameId`) exposes nickname, avatar, score and rank only, never guest ids.
+- **Needs the database.** Without `DATABASE_URL` the daily start still works (same seed) but there is
+  no repeat protection and no leaderboard.
+
 ## Scoring rules of the launch games
 
 **Majority Trap** (`scoring.ts`): per round, only players who answered count. Correct prediction

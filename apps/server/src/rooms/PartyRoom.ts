@@ -3,6 +3,8 @@ import { performance } from 'node:perf_hooks';
 import { CloseCode, Room, ServerError, type AuthContext, type Client } from '@colyseus/core';
 import {
   createRng,
+  dailySeed,
+  dayKey,
   partyPointsForRank,
   randomSeed,
   rankScores,
@@ -28,6 +30,7 @@ import {
   profileSchema,
   readySchema,
   sanitizeNickname,
+  startSchema,
   type AvatarId,
   type MatchResults,
   type NoticePayload,
@@ -103,6 +106,10 @@ export class PartyRoom extends Room implements RoomHandle {
   private lastTick = Date.now();
   private lastSweep = 0;
   private idleSince: number | null = null;
+  /** Set while the one-attempt-per-day lookup of a daily start is in flight; other starts are ignored. */
+  private startChecking = false;
+  /** The daily challenge this match was accepted as (day fixed at start time), or null for a normal match. */
+  private dailyRun: { day: string; seed: number } | null = null;
 
   // ---- lifecycle -------------------------------------------------------------------------
 
@@ -249,7 +256,7 @@ export class PartyRoom extends Room implements RoomHandle {
     });
     on(C2S.selectGame, gameIdSchema, (m, d) => this.onSelectGame(m, d.gameId));
     on(C2S.vote, gameIdSchema, (m, d) => this.onVote(m, d.gameId));
-    on(C2S.start, emptySchema, (m) => this.onStart(m, false));
+    on(C2S.start, startSchema, (m, d) => this.onStart(m, false, d?.daily === true));
     on(C2S.rematch, emptySchema, (m) => this.onStart(m, true));
     on(C2S.backToLobby, emptySchema, (m) => this.onBackToLobby(m));
     on(C2S.kick, kickSchema, (m, d) => this.onKick(m, d.playerId));
@@ -316,13 +323,19 @@ export class PartyRoom extends Room implements RoomHandle {
     return best;
   }
 
-  private onStart(m: Member, rematch: boolean): void {
+  private onStart(m: Member, rematch: boolean, daily = false): void {
+    if (this.startChecking) return; // a daily start is waiting for its database lookup
     if (!this.requireHost(m)) return;
     if (rematch ? this.phase !== 'results' : this.phase !== 'lobby' && this.phase !== 'results') return;
     const gameId = rematch ? (this.lastResults?.gameId ?? this.selectedGameId) : this.selectedGameId;
     const plugin = gameId ? this.rt.games.get(gameId) : undefined;
     if (!gameId || !plugin) return this.notice(m, 'warn', 'Pick a game first');
     const players = [...this.members.values()].filter((p) => p.client);
+    // The daily challenge is a single-player arcade run: everyone gets the same seed and the board is
+    // only fair if nobody else is in the run. Spectators (not connected as players) do not count.
+    if (daily && (plugin.meta.kind !== 'arcade' || players.length !== 1)) {
+      return this.notice(m, 'warn', 'The daily challenge is for one player and an arcade game');
+    }
     const { minPlayers, maxPlayers } = plugin.meta;
     if (players.length < minPlayers) {
       return this.notice(m, 'warn', `${plugin.meta.name} needs at least ${minPlayers} connected players`);
@@ -334,10 +347,38 @@ export class PartyRoom extends Room implements RoomHandle {
       const notReady = players.filter((p) => p.id !== this.hostId && !p.ready);
       if (notReady.length > 0) return this.notice(m, 'warn', `Waiting for ${notReady.map((p) => p.name).join(', ')} to ready up`);
     }
+    if (!daily) return this.commitStart(gameId, players, null);
+
+    // One attempt per UTC day: the day is fixed here, at start time, so a run that ends after midnight
+    // still belongs to the day it started. Without a database `hasDailyRun` is always false, i.e. there
+    // is no repeat protection (documented: attempt limits need the database).
+    const day = dayKey(this.rt.now());
+    this.startChecking = true;
+    this.rt.repo
+      .hasDailyRun(day, gameId, m.id)
+      .then((played) => {
+        if (played) return this.notice(m, 'warn', "You already played today's challenge");
+        // The party may have changed while we waited: re-validate before committing.
+        const now = [...this.members.values()].filter((p) => p.client);
+        const stillValid = (this.phase === 'lobby' || this.phase === 'results') && this.hostId === m.id && now.length === 1 && now[0]!.id === m.id;
+        if (!stillValid) return this.notice(m, 'warn', 'The daily challenge could not start - try again');
+        this.commitStart(gameId, now, { day, seed: dailySeed(gameId, day) });
+      })
+      .catch((err) => {
+        console.error('[db] hasDailyRun failed', err instanceof Error ? err.message : err);
+        this.notice(m, 'warn', 'The daily challenge is unavailable right now');
+      })
+      .finally(() => {
+        this.startChecking = false;
+      });
+  }
+
+  private commitStart(gameId: string, players: Member[], daily: { day: string; seed: number } | null): void {
     this.selectedGameId = gameId;
     this.participantIds = players.map((p) => p.id);
     this.participantSnapshot = new Map(players.map((p) => [p.id, toPlayer(p)]));
     this.current = { gameId, matchId: randomUUID() };
+    this.dailyRun = daily;
     this.lastResults = null;
     this.phase = 'starting';
     this.startsAt = Date.now() + this.rt.timing.startDelayMs;
@@ -459,7 +500,7 @@ export class PartyRoom extends Room implements RoomHandle {
     this.participantIds = players.map((p) => p.id);
     this.participantSnapshot = new Map(players.map((p) => [p.id, p]));
     this.plugin = plugin;
-    const config = { ...plugin.defaultConfig, ...(this.rt.gameConfig[plugin.meta.id] ?? {}) };
+    const config = this.matchConfig(plugin);
     const ctx = this.makeContext(cur.matchId, players, config);
     try {
       this.instance = plugin.createInstance(ctx);
@@ -482,6 +523,11 @@ export class PartyRoom extends Room implements RoomHandle {
     this.gameDirty = true;
     this.flushGameState(true);
     this.partyDirty = true;
+  }
+
+  /** Effective config of the running/starting match. A daily match pins the seed; saved config is never mutated. */
+  private matchConfig(plugin: GamePlugin): Record<string, unknown> {
+    return { ...plugin.defaultConfig, ...(this.rt.gameConfig[plugin.meta.id] ?? {}), ...(this.dailyRun ? { seed: this.dailyRun.seed } : {}) };
   }
 
   private makeContext(matchId: string, players: GamePlayer[], config: Record<string, unknown>): GameContext {
@@ -508,7 +554,7 @@ export class PartyRoom extends Room implements RoomHandle {
     this.safeSend(m.client, 'game:start', {
       gameId: this.current.gameId,
       matchId: this.current.matchId,
-      config: { ...this.plugin?.defaultConfig, ...(this.rt.gameConfig[this.current.gameId] ?? {}) },
+      config: this.plugin ? this.matchConfig(this.plugin) : {},
       participantIds: this.participantIds,
     });
     this.safeSend(m.client, 'game:state', this.stateFor(m.id));
@@ -538,6 +584,8 @@ export class PartyRoom extends Room implements RoomHandle {
     const cur = this.current;
     const plugin = this.plugin;
     if (!cur || !plugin) return;
+    const daily = this.dailyRun;
+    this.dailyRun = null;
     // Defensive: only known participants, each exactly once.
     const byId = new Map<string, { playerId: string; score: number; tiebreak?: number }>();
     for (const s of result.scores) {
@@ -591,18 +639,28 @@ export class PartyRoom extends Room implements RoomHandle {
         participants: rankings.map((r) => ({ guestId: r.playerId, nickname: r.name, avatar: r.avatar, score: r.score, rank: r.rank, partyPoints: r.partyPoints })),
       })
       .catch((err) => console.error('[db] recordMatch failed', err instanceof Error ? err.message : err));
-    // Personal bests: same snapshot-based participant count `n` as the win rule. Task 10 overrides
-    // the mode for daily challenges. Non-persistent players are skipped inside the repository.
-    const mode = n === 1 ? 'solo' : 'party';
+    // Personal bests: same snapshot-based participant count `n` as the win rule; a daily challenge is its
+    // own mode. Non-persistent players are skipped inside the repository.
+    const mode = daily ? 'daily' : n === 1 ? 'solo' : 'party';
     void this.rt.repo
       .recordScores(rankings.map((r) => ({ guestId: r.playerId, gameId: results.gameId, mode, score: r.score })))
       .catch((err) => console.error('[db] recordScores failed', err instanceof Error ? err.message : err));
+    if (daily) {
+      // The attempt counts once the match ends (a missing submission scored 0 above). Only the
+      // leaderboard fields are stored: nickname, avatar, score.
+      for (const r of rankings) {
+        void this.rt.repo
+          .recordDailyRun({ day: daily.day, gameId: results.gameId, guestId: r.playerId, nickname: r.name, avatar: r.avatar, score: r.score })
+          .catch((err) => console.error('[db] recordDailyRun failed', err instanceof Error ? err.message : err));
+      }
+    }
   }
 
   private toLobby(): void {
     this.disposeInstance();
     this.phase = 'lobby';
     this.current = null;
+    this.dailyRun = null;
     this.startsAt = null;
     this.lastResults = null;
     this.participantIds = [];

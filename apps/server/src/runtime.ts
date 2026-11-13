@@ -39,6 +39,8 @@ export interface Runtime {
   timing: Timing;
   /** Per-game config overrides (ops / tests). Never client-controlled. */
   gameConfig: Record<string, Record<string, unknown>>;
+  /** Wall clock (epoch ms). Injectable so tests can roll the UTC day over; used for daily challenges. */
+  now: () => number;
   joinLimiter: KeyedWindowLimiter;
   metrics: Metrics;
   codes: Set<string>;

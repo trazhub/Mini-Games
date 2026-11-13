@@ -1,7 +1,7 @@
 import type { BestEntry } from '@minigamehub/shared';
-import { asc, eq, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
-import { gameScores, guests, matchParticipants, matches, playerStats } from './schema';
+import { dailyRuns, gameScores, guests, matchParticipants, matches, playerStats } from './schema';
 
 export interface MatchRecord {
   matchId: string;
@@ -33,6 +33,25 @@ export interface ScoreEntry {
   score: number;
 }
 
+export interface DailyRunEntry {
+  day: string;
+  gameId: string;
+  guestId: string;
+  nickname: string;
+  avatar: string;
+  score: number;
+}
+
+export interface DailyTopEntry {
+  rank: number;
+  nickname: string;
+  avatar: string;
+  score: number;
+}
+
+/** Largest value of a Postgres integer column. */
+const MAX_INT = 2147483647;
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface Repository {
@@ -51,6 +70,16 @@ export interface Repository {
   setRecoveryHash(guestId: string, hash: string): Promise<void>;
   /** Guest id owning this recovery-code hash, or null. */
   findGuestByRecoveryHash(hash: string): Promise<string | null>;
+  /** Whether the guest already has a daily run for this UTC day and game. */
+  hasDailyRun(day: string, gameId: string, guestId: string): Promise<boolean>;
+  /**
+   * Stores a daily run. One run per (day, game, guest): a later insert for the same key is ignored (the
+   * first run is kept, nothing throws). Non-UUID guest ids are skipped; the score is stored as
+   * `min(2147483647, max(0, round(score)))`.
+   */
+  recordDailyRun(entry: DailyRunEntry): Promise<void>;
+  /** Top runs of a day and game by score (desc), earliest run first on ties; ranks are 1..n by position. */
+  dailyTop(day: string, gameId: string, limit: number): Promise<DailyTopEntry[]>;
   ping(): Promise<boolean>;
   close(): Promise<void>;
 }
@@ -65,6 +94,9 @@ export const noopRepository: Repository = {
   getBests: async () => [],
   setRecoveryHash: async () => {},
   findGuestByRecoveryHash: async () => null,
+  hasDailyRun: async () => false,
+  recordDailyRun: async () => {},
+  dailyTop: async () => [],
   ping: async () => true,
   close: async () => {},
 };
@@ -130,7 +162,7 @@ export function createPgRepository(db: AnyPgDb, closeFn: () => Promise<void>): R
       // `best` is an integer shown to players, so fractional scores are rounded and negatives clamped to 0.
       const valid = entries
         .filter((e) => UUID_RE.test(e.guestId) && Number.isFinite(e.score))
-        .map((e) => ({ ...e, score: Math.max(0, Math.round(e.score)) }));
+        .map((e) => ({ ...e, score: Math.min(MAX_INT, Math.max(0, Math.round(e.score))) }));
       if (valid.length === 0) return;
       await db.transaction(async (tx) => {
         for (const e of valid) {
@@ -166,6 +198,35 @@ export function createPgRepository(db: AnyPgDb, closeFn: () => Promise<void>): R
     async findGuestByRecoveryHash(hash) {
       const rows = await db.select({ id: guests.id }).from(guests).where(eq(guests.recoveryHash, hash)).limit(1);
       return rows[0]?.id ?? null;
+    },
+    async hasDailyRun(day, gameId, guestId) {
+      if (!UUID_RE.test(guestId)) return false;
+      const rows = await db
+        .select({ day: dailyRuns.day })
+        .from(dailyRuns)
+        .where(and(eq(dailyRuns.day, day), eq(dailyRuns.gameId, gameId), eq(dailyRuns.guestId, guestId)))
+        .limit(1);
+      return rows.length > 0;
+    },
+    async recordDailyRun(e) {
+      if (!UUID_RE.test(e.guestId) || !Number.isFinite(e.score)) return;
+      const score = Math.min(MAX_INT, Math.max(0, Math.round(e.score)));
+      await db.transaction(async (tx) => {
+        await tx.insert(guests).values({ id: e.guestId }).onConflictDoNothing();
+        await tx
+          .insert(dailyRuns)
+          .values({ day: e.day, gameId: e.gameId, guestId: e.guestId, nickname: e.nickname, avatar: e.avatar, score })
+          .onConflictDoNothing();
+      });
+    },
+    async dailyTop(day, gameId, limit) {
+      const rows = await db
+        .select({ nickname: dailyRuns.nickname, avatar: dailyRuns.avatar, score: dailyRuns.score })
+        .from(dailyRuns)
+        .where(and(eq(dailyRuns.day, day), eq(dailyRuns.gameId, gameId)))
+        .orderBy(desc(dailyRuns.score), asc(dailyRuns.createdAt), asc(dailyRuns.guestId))
+        .limit(Math.max(0, Math.floor(limit)));
+      return rows.map((r, i) => ({ rank: i + 1, nickname: r.nickname, avatar: r.avatar, score: r.score }));
     },
     async ping() {
       try {

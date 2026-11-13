@@ -12,6 +12,7 @@ in `packages/shared/src/{protocol,types}.ts` and are shared by client and server
 | `GET /api/rooms/:code` | `{exists, players, capacity, phase, joinable}` | 60/min/IP; no member names |
 | `GET /api/me/stats` | The caller's persisted stats | `Authorization: Bearer <token>` |
 | `GET /api/me/bests` | The caller's personal bests `{bests: [{gameId, mode, best, plays}]}` (`mode`: `solo`, `party`, `daily`), ordered by game then mode; `[]` without a database | `Authorization: Bearer <token>`; `401 unauthorized` otherwise |
+| `GET /api/daily/:gameId` | Today's (UTC) daily-challenge board `{day, entries: [{rank, nickname, avatar, score}]}`, top 50 by score, earlier run first on ties; `entries` is `[]` without a database; `404 {error:"unknown_game"}` for unknown or non-arcade games | 60/min/IP; no guest ids |
 | `GET /health` | `{ok, db}` | used by Docker/monitoring |
 | `GET /metrics` | Process + game metrics | loopback or `METRICS_TOKEN` only; Nginx returns 404 publicly |
 | `POST /matchmake/create/party`, `/matchmake/joinById/party` | Colyseus seat reservation | Used by the SDK |
@@ -20,6 +21,12 @@ Personal bests live in table `game_scores` (`guest_id`, `game_id`, `mode`, `best
 `updated_at`; primary key `(guest_id, game_id, mode)`). Every finished match upserts each
 participant's score (`best = greatest(...)`, `plays + 1`, scores rounded and clamped to >= 0); the
 mode is `solo` for a one-player match and `party` otherwise.
+
+Daily challenge runs live in table `daily_runs` (`day`, `game_id`, `guest_id`, `nickname`, `avatar`,
+`score`, `created_at`; primary key `(day, game_id, guest_id)`, so one run per guest, game and UTC day;
+the first write wins). The score is also upserted into `game_scores` with mode `daily`. `start` takes
+an optional payload `{daily?: boolean}` (see "Daily challenge" in GAME_ENGINE.md); unknown fields are
+a protocol violation.
 
 CORS: only origins in `ALLOWED_ORIGINS` get `Access-Control-Allow-Origin` (+ credentials, because
 the SDK uses `credentials: "include"`). WebSocket upgrades from other browser origins get 403.
@@ -45,7 +52,7 @@ expired token (client fetches a new guest session and retries once), `4403` remo
 | `ready` | `{ready}` | non-host | lobby |
 | `selectGame` | `{gameId}` | host | lobby, results |
 | `vote` | `{gameId}` (toggle) | any | lobby, results |
-| `start` | - | host | lobby, results |
+| `start` | none, `{}` or `{daily: true}` | host | lobby, results |
 | `rematch` | - | host | results |
 | `backToLobby` | - | host | starting, playing (abort), results |
 | `kick` | `{playerId}` | host | any (not self) |

@@ -26,6 +26,12 @@ export const readySchema = z.object({ ready: z.boolean() });
 export const gameIdSchema = z.object({ gameId: id });
 export const kickSchema = z.object({ playerId: id });
 export const emptySchema = z.union([z.object({}), z.undefined(), z.null()]);
+/**
+ * `start` payload: nothing, `{}`, or `{ daily: true }` (one-player arcade daily challenge). Unknown fields are
+ * rejected (strict) so a typo such as `dayly` is a visible protocol error, not a silently normal start.
+ */
+export const startSchema = z.union([z.object({ daily: z.boolean().optional() }).strict(), z.undefined(), z.null()]);
+export type StartRequest = z.infer<typeof startSchema>;
 export const pingSchema = z.object({ t: z.number().finite() });
 
 /**
@@ -80,6 +86,19 @@ export interface BestEntry {
 
 export interface BestsResponse {
   bests: BestEntry[];
+}
+
+export interface DailyEntry {
+  rank: number;
+  nickname: string;
+  avatar: string;
+  score: number;
+}
+
+export interface DailyResponse {
+  /** UTC day, `YYYY-MM-DD`. */
+  day: string;
+  entries: DailyEntry[];
 }
 
 export interface GuestResponse {

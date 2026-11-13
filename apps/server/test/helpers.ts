@@ -21,6 +21,8 @@ export async function startTestServer(
     gameConfig?: Record<string, Record<string, unknown>>;
     repo?: Repository;
     games?: readonly GamePlugin[];
+    /** Injectable wall clock for the daily challenge (UTC day rollover). */
+    now?: () => number;
   } = {},
 ): Promise<TestServer> {
   const config = loadConfig({
@@ -36,6 +38,7 @@ export async function startTestServer(
     games: opts.games,
     timing: { startDelayMs: 50, graceMs: 2500, hostMigrationMs: 300, idleTtlMs: 5000, resultsAutoReturnMs: 60000, unclaimedTtlMs: 5000, ...opts.timing },
     gameConfig: opts.gameConfig,
+    now: opts.now,
   });
   const port = await app.listen(0, '127.0.0.1');
   return { app, port, url: `http://127.0.0.1:${port}`, config, close: () => app.shutdown() };
