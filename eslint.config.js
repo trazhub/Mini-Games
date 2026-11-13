@@ -27,7 +27,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['**/*.test.{ts,tsx}', 'apps/server/test/**', 'e2e/**'],
+    files: ['**/*.test.{ts,tsx}', 'apps/server/test/**', 'e2e/**', 'scripts/**'],
     rules: { '@typescript-eslint/no-explicit-any': 'off', '@typescript-eslint/no-non-null-assertion': 'off' },
   },
 );

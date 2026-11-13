@@ -30,7 +30,8 @@ export default defineConfig({
     {
       command: 'npx tsx apps/server/src/main.ts',
       url: 'http://localhost:2567/health',
-      reuseExistingServer: !process.env.CI,
+      // Never reuse: a stray dev server has different CORS origins/timings and would silently fail the tests.
+      reuseExistingServer: false,
       timeout: 60_000,
       env: {
         PORT: '2567',
@@ -50,7 +51,8 @@ export default defineConfig({
     {
       command: 'npm run build -w @minigamehub/web && npm run preview -w @minigamehub/web -- --port 4180 --strictPort',
       url: BASE_URL,
-      reuseExistingServer: !process.env.CI,
+      // Never reuse: a stray dev server has different CORS origins/timings and would silently fail the tests.
+      reuseExistingServer: false,
       timeout: 180_000,
     },
   ],

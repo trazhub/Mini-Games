@@ -1,0 +1,27 @@
+# Local development dependencies. Run from the repo root:
+#   docker compose -f infra/docker/compose.dev.yml up -d
+# Then in .env:  DATABASE_URL=postgres://mgh:mgh_dev_only@127.0.0.1:5432/minigamehub
+# Without Docker the server simply runs without persistence (DATABASE_URL unset).
+
+name: minigamehub-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: minigamehub
+      POSTGRES_USER: mgh
+      POSTGRES_PASSWORD: mgh_dev_only
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U mgh -d minigamehub']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata_dev:

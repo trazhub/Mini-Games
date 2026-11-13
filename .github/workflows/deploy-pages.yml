@@ -1,0 +1,60 @@
+name: Deploy frontend to GitHub Pages
+
+# Builds ONLY the static frontend (apps/web) and publishes apps/web/dist to
+# https://trazhub.github.io/Mini-Games/ . The backend is deployed separately (docs/VM_DEPLOYMENT.md).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  # Public build-time values (never put secrets here).
+  VITE_BASE_PATH: /Mini-Games/
+  VITE_API_URL: https://backend.opop.eu.org
+  VITE_APP_NAME: MiniGameHub
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Lint
+        run: npm run lint
+      - name: Unit and integration tests
+        run: npm test
+      - name: Build static site
+        run: npm run build -w @minigamehub/web
+      - name: Verify base path in the build output
+        run: |
+          grep -q '/Mini-Games/assets/' apps/web/dist/index.html
+          test -f apps/web/dist/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
