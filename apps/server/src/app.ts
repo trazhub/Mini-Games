@@ -70,7 +70,10 @@ export function createGameServer(opts: CreateServerOptions): GameServer {
   const lookupLimiter = new KeyedWindowLimiter(60, 60_000);
   const sessionTtlMs = config.SESSION_TTL_HOURS * 3600_000;
 
-  // CORS for Colyseus' own matchmaking endpoints (/matchmake/*).
+  // CORS for Colyseus' own matchmaking endpoints (/matchmake/*). Colyseus merges
+  // DEFAULT_CORS_HEADERS (which contains `Access-Control-Allow-Origin: *`) UNDER getCorsHeaders,
+  // so the defaults must be emptied or the wildcard leaks through for disallowed origins.
+  matchMaker.controller.DEFAULT_CORS_HEADERS = {} as typeof matchMaker.controller.DEFAULT_CORS_HEADERS;
   matchMaker.controller.getCorsHeaders = (headers: Headers) => {
     const origin = headers.get('origin');
     const out: Record<string, string> = {
