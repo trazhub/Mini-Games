@@ -8,6 +8,20 @@ rematch and game switching; three server-authoritative games; PostgreSQL persist
 Compose + Nginx + backup deployment artifacts; GitHub Pages workflow; unit, integration, security,
 e2e and load tests. Deployment is **prepared, not performed** (needs your approval).
 
+## Delivery waves
+
+From the [foundation spec](superpowers/specs). Each wave is built and tested locally, then deployed and
+verified before the next starts.
+
+| Wave | Contents | State |
+| --- | --- | --- |
+| 0 | Foundation: solo party flow, arcade seed/submit/verify, durable identity + recovery code, `game_scores`, kind filter, legal page, **Lane Runner**, daily challenge | built; deployed with this release |
+| 1 | Indian staples: Ludo, Tank Duel, Fish Feast | planned |
+| 2 | Action core: Jet Squad, Traitor Station, Bomb Arena, Street Racers | planned |
+| 3 | Sports, co-op and quick arcades: Pool, Hand Cricket, Pocket Football, Lane Defence, Twin Puzzle, Marble Shooter, Match Three, Fruit Slicer, Slingshot Physics, Hill Climber, Shooting Gallery | planned |
+| 4 | Large: Tactical Squad, Last Zone, Dead Hall, Arena Fighter, Block Yard (may be cut) | planned |
+| 5 | Board-game classics (may be interleaved earlier as cheap filler) | planned |
+
 ## Next priorities
 
 1. **Verify live**: push the repo, enable Pages, deploy the backend, then run the external checks in

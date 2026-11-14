@@ -13,9 +13,7 @@ no mandatory accounts.
 - **Backend** - Node.js, TypeScript, Colyseus, PostgreSQL (Drizzle ORM), Docker Compose. Public
   endpoint: `https://backend.opop.eu.org`, served behind an existing external Nginx reverse proxy.
 - **Status** - the backend is deployed behind that proxy (Docker Compose on a single VM); the
-  frontend is a static build published by the Pages workflow. Features on this branch (arcade
-  protocol, Lane Runner, daily challenge, recovery codes) are tested locally and ship with the next
-  deploy. See [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md).
+  frontend is a static build published by the Pages workflow. See [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md).
 
 ## Quickstart
 
@@ -27,15 +25,18 @@ npm run dev        # server on :2567, web on :5173
 npm run verify     # typecheck, lint, tests, build (the CI gate)
 ```
 
-## The three launch games
+## The games
 
 | Game | Players | Category | One-liner |
 | --- | --- | --- | --- |
 | Majority Trap | 3-12 | Party / social | Pick an answer, then predict which one the group picks *less*. |
 | Echo Steps | 2-10 | Reaction / memory | Watch the pattern, echo it back; last echo standing wins. |
 | Orbit Swap | 2-8 | Arcade | Hop between orbital lanes, grab stars, dodge asteroid arcs (server-authoritative, Phaser). |
+| Lane Runner | 1-8 | Arcade (classic) | Three lanes, one run, same course for everyone. Play solo or race friends; scores are verified by replaying your inputs on the server. |
 
-All gameplay, timers and scoring are decided on the server. Clients are untrusted.
+All gameplay, timers and scoring are decided on the server. Clients are untrusted. The library can be
+filtered by kind (Together, Arcade, Action), games marked solo have a **Play solo** button, and your
+guest identity lasts between visits (with an optional recovery code on the Profile page).
 
 ## Quick start (Windows PowerShell, macOS, Linux)
 
@@ -96,15 +97,13 @@ docs/  README.md (index)  LEGAL.md  ...existing guides...  superpowers/{specs,pl
 
 `apps/web` is the React frontend, `apps/server` the Colyseus server and DB layer, `packages/shared`
 the protocol and types, `packages/game-core` the plugin interface, RNG, test harness and the arcade
-engine (`arcade.ts`, `arcade-client.ts`), `games/lane-runner` the reference arcade game (server side
-and sim), `infra/` the Docker, Nginx and backup files, `scripts/` the load test and the repository
-hygiene test. The web pieces of the arcade foundation (Lane Runner's browser UI, the arcade send
-plumbing, the recovery card, the Classics shelf) are still to come.
+engine (`arcade.ts`, `arcade-client.ts`), `games/lane-runner` the reference arcade game (sim, server plugin and browser client), `infra/` the Docker, Nginx and backup files, `scripts/` the load test and the repository
+hygiene test.
 
 ## Documentation
 
 Full index: [docs/README.md](docs/README.md). Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
-([Code of Conduct](CODE_OF_CONDUCT.md), [Security policy](SECURITY.md), [Legal notes](docs/LEGAL.md)).
+([Code of Conduct](CODE_OF_CONDUCT.md), [Security policy](SECURITY.md), [Legal notes](docs/LEGAL.md); the same notes are on the site's Legal page).
 Licensed under the [MIT License](LICENSE).
 
 [Architecture](docs/ARCHITECTURE.md) · [Local development](docs/LOCAL_DEVELOPMENT.md) ·

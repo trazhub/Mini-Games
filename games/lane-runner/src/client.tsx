@@ -21,6 +21,8 @@ interface Hud {
   score: number;
   coins: number;
   alive: boolean;
+  /** Current lane 0..2 (also exposed as data-lane so tests and assistive tooling can read it). */
+  lane: number;
 }
 
 const ACCENT = '#3ee0a0';
@@ -131,7 +133,7 @@ function draw(canvas: HTMLCanvasElement, c: RunController | null, shownLane: num
 export default function LaneRunnerClient(props: GameClientProps<ArcadeState<LaneConfig>>) {
   const { state, me, spectator, participantIds, sendArcade, serverNow, reportScores, sfx, reducedMotion } = props;
   const [phase, setPhase] = useState<Phase>('waiting');
-  const [hud, setHud] = useState<Hud>({ score: 0, coins: 0, alive: true });
+  const [hud, setHud] = useState<Hud>({ score: 0, coins: 0, alive: true, lane: 1 });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const controllerRef = useRef<RunController | null>(null);
@@ -153,7 +155,7 @@ export default function LaneRunnerClient(props: GameClientProps<ArcadeState<Lane
     if (!c || phaseRef.current === 'over') return;
     chunksRef.current = c.finish();
     setPhaseBoth('over');
-    setHud({ score: c.score(), coins: c.run.coins, alive: c.run.alive });
+    setHud({ score: c.score(), coins: c.run.coins, alive: c.run.alive, lane: c.run.lane });
     live.current.reportScores({ [live.current.me]: c.score() });
     if (!c.run.alive) {
       flashRef.current = 0.5;
@@ -165,7 +167,7 @@ export default function LaneRunnerClient(props: GameClientProps<ArcadeState<Lane
   const steer = useCallback((dir: Direction) => {
     const c = controllerRef.current;
     if (!c || phaseRef.current !== 'running') return;
-    c.input(dir);
+    if (c.input(dir)) setHud((h) => (h.lane === c.run.lane ? h : { ...h, lane: c.run.lane }));
   }, []);
 
   // Create the run as soon as the server's seed is known. The state carries the seed, so a client
@@ -212,7 +214,7 @@ export default function LaneRunnerClient(props: GameClientProps<ArcadeState<Lane
           lastCoins = c.run.coins;
         }
         if (++hudTick % 4 === 0 || c.done) {
-          setHud({ score: c.score(), coins: c.run.coins, alive: c.run.alive });
+          setHud({ score: c.score(), coins: c.run.coins, alive: c.run.alive, lane: c.run.lane });
           live.current.reportScores({ [live.current.me]: c.score() });
         }
         const deadline = live.current.state?.deadline;
@@ -306,7 +308,7 @@ export default function LaneRunnerClient(props: GameClientProps<ArcadeState<Lane
   const style = { '--lane-accent': ACCENT } as CSSProperties;
 
   return (
-    <div className="mx-auto w-full max-w-[520px]" style={style} data-testid="lane-runner">
+    <div className="mx-auto w-full max-w-[520px]" style={style} data-testid="lane-runner" data-lane={hud.lane} data-phase={phase}>
       <div className="mb-2 flex items-end justify-between px-1" aria-hidden={phase === 'waiting'}>
         <div>
           <p className="text-xs uppercase tracking-wide text-mist">Score</p>

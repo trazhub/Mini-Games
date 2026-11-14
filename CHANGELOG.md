@@ -22,7 +22,15 @@ All notable changes to this project are documented here. The format follows
 - Personal bests per game and mode (`game_scores` table, `GET /api/me/bests`).
 - Arcade protocol in `game-core`: seeded browser runs, input logs sent as `arcade:chunk` messages and
   replayed on the server, which keeps only its own score (`createArcadePlugin`, `ArcadeRecorder`).
-- Lane Runner, the reference arcade game (server side and deterministic sim; browser UI to follow).
+- Lane Runner, the reference arcade game: deterministic sim, server plugin and a canvas browser client
+  (keyboard, tap zones, swipe, on-screen buttons) with a pure run controller whose local score equals the
+  server replay. Lazy-loaded as its own chunk.
+- Web identity: the first tab keeps the guest session in `localStorage` (Web Lock `mgh-primary`), other tabs
+  stay per-tab; the stored token is renewed instead of minting a new guest; a recovery card on the Profile page
+  makes, copies and restores a recovery code.
+- Library kind filter (Together / Arcade / Action), a **Play solo** button on solo games, and a Legal page
+  (footer and Settings link) with the originality rules and takedown contact.
+- End-to-end tests for the Lane Runner solo flow, touch controls, the legal page and the recovery card.
 - Daily challenge for arcade games: one attempt per guest and UTC day with a shared seed, and a
   public board (`GET /api/daily/:gameId`, nickname and avatar only).
 

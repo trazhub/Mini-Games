@@ -20,11 +20,11 @@ export default defineConfig({
   projects: [
     {
       name: "mobile",
-      testMatch: /mobile.spec.ts/,
+      testMatch: /(?:mobile|lane-runner).spec.ts/,
       use: { ...devices["Pixel 7"], channel: process.env.CI ? undefined : "chrome" },
     },
     // Uses the locally installed Chrome so no browser download is needed; falls back to bundled Chromium in CI.
-    { name: 'desktop', testMatch: /(?:desktop|arcade).spec.ts/, use: { ...devices['Desktop Chrome'], channel: process.env.CI ? undefined : 'chrome' } },
+    { name: 'desktop', testMatch: /(?:desktop|arcade|lane-runner).spec.ts/, use: { ...devices['Desktop Chrome'], channel: process.env.CI ? undefined : 'chrome' } },
   ],
   webServer: [
     {

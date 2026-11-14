@@ -63,11 +63,24 @@ hosted inside it.**
 
 ## Identity
 
-1. `POST /api/guest` returns `{guestId, token}`. The token is an HMAC-signed `{sub, iat, exp}`.
+1. `POST /api/guest` returns `{guestId, token, expiresAt}`. The token is an HMAC-signed `{sub, iat, exp}` that lasts about a
+   year. Sending the old token (Bearer header) renews it and keeps the same guest; anything invalid falls back to a new guest.
 2. Joining a room sends the token; the server verifies it and uses `sub` as the player id.
 3. The nickname is only a label. Authorisation never uses it (names can collide and are de-duplicated).
 4. Reconnecting is "join the same room with the same token": the party maps it back to the existing
    member, re-sends the game state, and replaces any older connection (newest wins).
+5. In the browser the **first tab** (the one holding the Web Lock `mgh-primary`) keeps the session in `localStorage`, so it
+   survives closing the browser; every other tab keeps its own in `sessionStorage` and is a separate player (the server
+   refuses one guest twice in a party). Without `navigator.locks` every tab behaves like a non-primary tab.
+6. A guest can create a **recovery code** (`POST /api/guest/recovery`, shown once, only an HMAC stored) and restore it
+   elsewhere (`POST /api/guest/restore`). Anyone holding the code can become that guest; both need the database.
+
+## Arcade games
+
+`createArcadePlugin` (`packages/game-core/src/arcade.ts`) turns a pure sim into a server plugin. The browser plays from a
+server seed and records its inputs (`ArcadeRecorder`); the log is sent as `arcade:chunk` messages, validated, replayed on
+the server and scored there. Personal bests live in `game_scores`, and the one-player daily challenge uses a seed derived from
+the game id and UTC day (`daily_runs`). See [ADDING_A_GAME.md](ADDING_A_GAME.md#arcade-games-lane-runner-as-the-example).
 
 ## Server-authoritative gameplay
 
