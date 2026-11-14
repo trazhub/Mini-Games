@@ -7,6 +7,11 @@ All notable changes to this project are documented here. The format follows
 
 ### Added
 
+- Illustrated posters (AI-generated with Canva, 960x720 JPG) for Majority Trap, Echo Steps, Orbit Swap and
+  Lane Runner, shown on the library, lobby and home page; the old SVG art stays as a fallback for games without one.
+- Recorded sound effects (Kenney Interface Sounds, CC0) replace the synthesised beeps, with the old synth as a
+  fallback until a sample has loaded; the four Echo Steps pads are one sample at four pitches. Credits on the Legal page.
+
 - Open-source scaffolding: `LICENSE` (MIT), `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md` (Contributor
   Covenant 2.1), `SECURITY.md`, GitHub issue forms (bug report, feature request, new game idea) and a
   pull request template.

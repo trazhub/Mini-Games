@@ -18,6 +18,15 @@ site widely.
 4. Held back until reviewed: platformers in the style of well-known franchises, falling-block
    stackers, maze-chase games, and anything that uses licensed characters.
 
+## Third-party assets
+
+- **Sound effects:** recorded samples from Kenney's "Interface Sounds" pack (Creative Commons Zero, CC0),
+  fetched from <https://github.com/Calinou/kenney-interface-sounds>. Seven files live in
+  `apps/web/src/assets/sfx/` with the pack's `LICENSE.txt`. Credit is not required but is given here.
+- **Game posters:** illustrations generated with Canva's image generator for this project (`apps/web/src/assets/art/`).
+  Check Canva's current terms for AI-generated content before relying on them commercially.
+- Background music is still generated in the browser, not recorded.
+
 ## NOTICE
 
 MiniGameHub contains original implementations of game ideas. It is not affiliated with, endorsed by,

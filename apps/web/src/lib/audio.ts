@@ -1,10 +1,48 @@
 import type { SfxName } from '@minigamehub/game-core';
+import { SAMPLE_FILES, SFX_PLAN, type SampleKey } from './sfx-map';
 import { getSettings } from './settings';
 
 /**
- * All audio is synthesised with the Web Audio API: zero asset downloads, instant start.
+ * Sound effects play recorded samples (Kenney, CC0; see sfx-map.ts). They are fetched and decoded after the
+ * first user gesture; until a sample is ready the old synthesised beep plays instead, so a cue is never
+ * silent. Background music is still generated with the Web Audio API.
  * The context is created lazily on the first user gesture (browser autoplay policy).
  */
+const sampleUrls = import.meta.glob('../assets/sfx/*.wav', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+const buffers = new Map<SampleKey, AudioBuffer>();
+let loading = false;
+
+function loadSamples(c: AudioContext): void {
+  if (loading) return;
+  loading = true;
+  for (const [key, file] of Object.entries(SAMPLE_FILES) as [SampleKey, string][]) {
+    const url = sampleUrls[`../assets/sfx/${file}`];
+    if (!url) continue;
+    void fetch(url)
+      .then((r) => r.arrayBuffer())
+      .then((data) => c.decodeAudioData(data))
+      .then((buf) => void buffers.set(key, buf))
+      .catch(() => {
+        /* keep the synthesised fallback for this cue */
+      });
+  }
+}
+
+function playSample(name: SfxName): boolean {
+  const c = ensure();
+  const plan = SFX_PLAN[name];
+  const buf = plan && buffers.get(plan.sample);
+  if (!c || !master || !plan || !buf) return false;
+  const src = c.createBufferSource();
+  const g = c.createGain();
+  src.buffer = buf;
+  src.playbackRate.value = plan.rate ?? 1;
+  g.gain.value = plan.gain ?? 1;
+  src.connect(g).connect(master);
+  src.start();
+  return true;
+}
+
 let ctx: AudioContext | null = null;
 let master: GainNode | null = null;
 
@@ -16,6 +54,7 @@ function ensure(): AudioContext | null {
       master = ctx.createGain();
       master.gain.value = 0.5;
       master.connect(ctx.destination);
+      loadSamples(ctx);
     } catch {
       return null;
     }
@@ -45,6 +84,7 @@ const PAD_FREQS = [329.63, 392, 493.88, 587.33];
 
 export function sfx(name: SfxName): void {
   if (!getSettings().sound) return;
+  if (playSample(name)) return;
   switch (name) {
     case 'tap':
       tone(520, 0, 0.07, 'triangle', 0.12);

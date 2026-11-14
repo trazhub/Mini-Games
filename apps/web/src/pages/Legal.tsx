@@ -14,6 +14,9 @@ export const LEGAL_RULES: readonly string[] = [
 export const LEGAL_NOTICE =
   'Mini-Games contains original implementations of game ideas. It is not affiliated with, endorsed by, or sponsored by the makers of any commercial game. All trademarks and product names mentioned anywhere belong to their respective owners and are used only to describe what a game is similar to, if at all.';
 
+export const LEGAL_CREDITS =
+  "Sound effects are samples from Kenney's Interface Sounds pack (CC0). Game posters were generated with Canva's image generator for this project.";
+
 export function Legal() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10" data-testid="legal-page">
@@ -30,6 +33,11 @@ export function Legal() {
       <section className="panel mt-6 p-6" aria-labelledby="notice">
         <h2 id="notice" className="text-xl font-bold">Notice</h2>
         <p className="mt-3 text-mist">{LEGAL_NOTICE}</p>
+      </section>
+
+      <section className="panel mt-6 p-6" aria-labelledby="credits">
+        <h2 id="credits" className="text-xl font-bold">Credits</h2>
+        <p className="mt-3 text-mist">{LEGAL_CREDITS}</p>
       </section>
 
       <section className="panel mt-6 p-6" aria-labelledby="takedown">
