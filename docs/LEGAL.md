@@ -23,7 +23,8 @@ site widely.
 - **Sound effects:** recorded samples from Kenney's "Interface Sounds" pack (Creative Commons Zero, CC0),
   fetched from <https://github.com/Calinou/kenney-interface-sounds>. Seven files live in
   `apps/web/src/assets/sfx/` with the pack's `LICENSE.txt`. Credit is not required but is given here.
-- **Game posters:** illustrations generated with Canva's image generator for this project (`apps/web/src/assets/art/`).
+- **Game art:** posters and in-game sprites and backdrops generated with Canva's image generator for this project
+  (`apps/web/src/assets/art/`, `games/*/src/assets/`). Avatars are pixel sprites drawn in code.
   Check Canva's current terms for AI-generated content before relying on them commercially.
 - Background music is still generated in the browser, not recorded.
 

@@ -15,7 +15,7 @@ export const LEGAL_NOTICE =
   'Mini-Games contains original implementations of game ideas. It is not affiliated with, endorsed by, or sponsored by the makers of any commercial game. All trademarks and product names mentioned anywhere belong to their respective owners and are used only to describe what a game is similar to, if at all.';
 
 export const LEGAL_CREDITS =
-  "Sound effects are samples from Kenney's Interface Sounds pack (CC0). Game posters were generated with Canva's image generator for this project.";
+  "Sound effects are samples from Kenney's Interface Sounds pack (CC0). Game art was generated with Canva's image generator for this project; avatars are pixel sprites drawn in code.";
 
 export function Legal() {
   return (

@@ -11,7 +11,7 @@ test.describe('production build under /Mini-Games/', () => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(BASE_URL);
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Small games');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Insert friends');
     await page.evaluate(() => document.fonts.ready);
     await page.screenshot({ path: 'docs/screenshots/home-desktop.png', fullPage: true, animations: 'disabled' });
     const scripts = await page.$$eval('script[src]', (els) => els.map((e) => (e as HTMLScriptElement).getAttribute('src')));
@@ -126,7 +126,7 @@ test.describe('multiplayer in real browsers', () => {
     await expect(p2.page.getByTestId('room-code')).toHaveText(code, { timeout: 15_000 });
     await expect(host.page.getByTestId('player-count')).toHaveText(/2 of 12|3 of 12/);
     await host.page.getByRole('button', { name: 'Leave party' }).click();
-    await expect(host.page.getByRole('heading', { level: 1 })).toContainText('Small games');
+    await expect(host.page.getByRole('heading', { level: 1 })).toContainText('Insert friends');
     await host.ctx.close();
     await p2.ctx.close();
   });

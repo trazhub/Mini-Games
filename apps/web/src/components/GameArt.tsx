@@ -23,8 +23,8 @@ function Face({ x, y, fill, rotate = 0, square = false }: { x: number; y: number
 
 function Majority() {
   return <><path fill="#ff6858" d="M0 0h480v350H0z" /><path d="M0 50h480M0 300h480" stroke="#202724" strokeWidth="1.5" opacity=".18" />
-    <text x="28" y="149" fill="#202724" fontSize="170" fontWeight="800" fontFamily="Bricolage Grotesque Variable, sans-serif" transform="rotate(-10 90 90)">A</text>
-    <text x="320" y="301" fill="#fff0d5" fontSize="185" fontWeight="800" fontFamily="Bricolage Grotesque Variable, sans-serif" transform="rotate(10 380 230)">B</text>
+    <text x="28" y="149" fill="#202724" fontSize="170" fontWeight="800" fontFamily="Pixelify Sans Variable, sans-serif" transform="rotate(-10 90 90)">A</text>
+    <text x="320" y="301" fill="#fff0d5" fontSize="185" fontWeight="800" fontFamily="Pixelify Sans Variable, sans-serif" transform="rotate(10 380 230)">B</text>
     <path d="m195 0-25 62 43 25-34 58 51 31-21 61 44 29-13 84" fill="none" stroke="#202724" strokeWidth="2.5" strokeDasharray="7 7" />
     <g className="preview-crowd"><Face x={99} y={244} fill="#f8cf46" rotate={-12} /><Face x={172} y={262} fill="#fffaf2" rotate={8} /><Face x={161} y={186} fill="#f8cf46" rotate={14} /></g>
     <g className="preview-outsider"><Face x={325} y={124} fill="#68ddb1" rotate={-12} square /><path d="m366 71 12-19m-1 36 22-3" fill="none" stroke="#202724" strokeWidth="3" strokeLinecap="round" /></g><path d="m254 196 29 5-14 24" fill="none" stroke="#202724" strokeWidth="4" />

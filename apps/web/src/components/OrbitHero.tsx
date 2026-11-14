@@ -46,20 +46,21 @@ export function OrbitHero({ code = '', mode = 'create' }: { code?: string; mode?
   }
 
   return <div className={`orbit-toy ${running && !reduced ? 'toy-running' : ''} ${won ? 'toy-won' : ''}`}>
-    <div className="toy-topline"><span><span className="tiny-cross">+</span> A pocket-sized playground</span><span aria-label={`${score} of 5 sparks`}>{String(score).padStart(2, '0')} / 05</span></div>
+    <div className="toy-topline"><span><span className="tiny-cross">▶</span> Warm-up round</span><span aria-label={`${score} of 5 sparks`}>{String(score).padStart(2, '0')} / 05</span></div>
     <svg className="toy-board" viewBox="0 0 520 365" aria-hidden="true">
-      <path d="M17 266 90 310h350l64-44" fill="none" stroke="#202724" strokeWidth="2" />
-      <path d="m21 275 70 45h350l63-45v22l-63 45H91l-70-45Z" fill="#202724" />
-      <path d="M17 65 89 22h351l64 43v201l-64 44H90l-73-44Z" fill="#dce8d1" stroke="#202724" strokeWidth="2" />
-      <path d="M34 75 96 39h337l54 36v180l-54 37H96l-62-37Z" fill="#acc7a8" stroke="#202724" strokeWidth="1.5" />
-      <g fill="none" stroke="#202724"><ellipse cx="260" cy="164" rx="180" ry="107" opacity=".35" /><ellipse cx="260" cy="164" rx="145" ry="86" strokeWidth="2" /><ellipse cx="260" cy="164" rx="110" ry="65" opacity=".35" /></g>
-      <path d="M205 84q55-20 110 0" fill="none" stroke="#f8cf46" strokeWidth="17" /><path d="m205 74-5 20m120-20 5 20" stroke="#202724" strokeWidth="2" />
-      <g className="toy-mascot"><path d="m260 100 19 35 40 6-28 28 7 39-38-18-37 18 7-39-29-28 41-6Z" fill="#f8cf46" stroke="#202724" strokeWidth="2.5" /><ellipse cx="249" cy="153" rx="5" ry="9" fill="#202724" /><ellipse cx="271" cy="153" rx="5" ry="9" fill="#202724" /><path d="M248 174q12 12 24 0" fill="none" stroke="#202724" strokeWidth="3" strokeLinecap="round" /></g>
-      <g transform="translate(260 164) scale(1 .593)"><g ref={runner} key={round} className="toy-runner"><g transform="translate(0 -145) scale(1 1.686)"><circle r="13" fill="#fffaf2" stroke="#202724" strokeWidth="3" /><circle r="5" fill="#202724" /></g></g></g>
-      <g fill="#ff6858" stroke="#202724" strokeWidth="2"><path d="m88 116 15-9 15 9v24l-15 9-15-9Z" /><path d="m395 220 15-9 15 9v24l-15 9-15-9Z" /></g>
-      <path d="M53 213v19m-9-9h18M443 111v19m-9-9h18" stroke="#202724" strokeWidth="2" />
-      <g transform="translate(360 34) rotate(8)"><path d="M0 0h109v40H0z" fill="#fffaf2" stroke="#202724" strokeWidth="2" /><text x="54" y="25" textAnchor="middle" fontSize="14" fontWeight="700" fill="#202724">{mode === 'join' && code ? code : 'Try me!'}</text></g>
-      <path d="m109 280 42 17h54l-32-17Z" fill="#4b8eff" stroke="#202724" strokeWidth="2" /><path d="m309 280 32 17h54l-42-17Z" fill="#4b8eff" stroke="#202724" strokeWidth="2" />
+      <defs>
+        <radialGradient id="toy-glow" cx="50%" cy="45%" r="60%"><stop offset="0" stopColor="#1b2a3a" /><stop offset="1" stopColor="#07060b" /></radialGradient>
+        <pattern id="toy-scan" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="1" fill="#000" opacity=".28" /></pattern>
+      </defs>
+      <rect x="8" y="8" width="504" height="349" fill="url(#toy-glow)" stroke="#463e5e" strokeWidth="2" />
+      <g stroke="#3fe0d0" strokeOpacity=".08"><path d="M8 62h504M8 116h504M8 170h504M8 224h504M8 278h504M8 332h504" /><path d="M62 8v349M116 8v349M170 8v349M224 8v349M278 8v349M332 8v349M386 8v349M440 8v349" /></g>
+      <g fill="none" stroke="#3fe0d0"><ellipse cx="260" cy="164" rx="180" ry="107" opacity=".28" /><ellipse cx="260" cy="164" rx="145" ry="86" strokeWidth="2.5" opacity=".9" /><ellipse cx="260" cy="164" rx="110" ry="65" opacity=".28" /></g>
+      <path d="M205 84q55-20 110 0" fill="none" stroke="#ffb12e" strokeWidth="10" strokeLinecap="square" opacity=".9" /><path d="m205 72-5 22m120-22 5 22" stroke="#ffb12e" strokeWidth="2" />
+      <g className="toy-mascot"><path d="M252 130h16v26h26v16h-26v26h-16v-26h-26v-16h26Z" fill="#ffb12e" /><path d="M256 146h8v8h8v8h-8v8h-8v-8h-8v-8h8Z" fill="#fff1c9" /></g>
+      <g transform="translate(260 164) scale(1 .593)"><g ref={runner} key={round} className="toy-runner"><g transform="translate(0 -145) scale(1 1.686)"><circle r="14" fill="#3fe0d0" opacity=".25" /><circle r="9" fill="#e9fffb" stroke="#3fe0d0" strokeWidth="3" /></g></g></g>
+      <g fill="#ff5470"><path d="M94 112h22v22H94Z" /><path d="M402 218h22v22h-22Z" /></g>
+      <text x="260" y="334" textAnchor="middle" fontSize="20" fill="#ffb12e" style={{ fontFamily: 'Pixelify Sans Variable, monospace' }}>{mode === 'join' && code ? code : 'FREE PLAY'}</text>
+      <rect x="8" y="8" width="504" height="349" fill="url(#toy-scan)" />
     </svg>
     <div className="toy-console"><div className="toy-sparks" aria-hidden="true">{Array.from({ length: 5 }, (_, i) => <Spark key={i} className={i < score ? 'spark-collected' : ''} />)}</div>
       <ArcadeButton variant="ink" onClick={play}>{won ? 'Play again' : reduced ? 'Collect a spark' : running ? 'Catch the spark' : 'Give it a spin'}<span aria-hidden="true">↗</span></ArcadeButton>

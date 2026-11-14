@@ -75,11 +75,11 @@ function draw(canvas: HTMLCanvasElement, c: RunController | null, shownLane: num
 
   // Sky and grass, then the illustrated backdrop with its horizon on ours.
   const sky = ctx.createLinearGradient(0, 0, 0, horizon);
-  sky.addColorStop(0, '#fdf2dc');
-  sky.addColorStop(1, '#f6ead0');
+  sky.addColorStop(0, '#2a1458');
+  sky.addColorStop(1, '#ff8a4d');
   ctx.fillStyle = sky;
   ctx.fillRect(0, 0, W, horizon + 1);
-  ctx.fillStyle = '#b9dfc5';
+  ctx.fillStyle = '#1a1030';
   ctx.fillRect(0, horizon, W, H - horizon);
   if (ready(art?.backdrop)) {
     const bw = W;
@@ -102,12 +102,12 @@ function draw(canvas: HTMLCanvasElement, c: RunController | null, shownLane: num
     ctx.closePath();
     ctx.fill();
   };
-  road(1.12, '#7fc6a0'); // verge
-  road(1, '#d9efdf'); // track
+  road(1.06, '#ff4fa0'); // neon edge
+  road(1, '#120d24'); // track
 
   // Lane dividers, scrolling with the distance so the speed is visible.
   const distance = c?.run.distance ?? 0;
-  ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+  ctx.strokeStyle = 'rgba(255,177,46,0.9)';
   for (let div = 1; div < LANES; div++) {
     const lane = div - 0.5;
     const phase = reduced ? 0 : distance % (ROW_SPACING * 2);
@@ -165,7 +165,7 @@ function draw(canvas: HTMLCanvasElement, c: RunController | null, shownLane: num
   // The runner: feet on runnerY; faded when the run is over.
   const rx = xAt(shownLane, 1);
   const rh = laneW * 1.15;
-  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
   ctx.beginPath();
   ctx.ellipse(rx, runnerY + 2, laneW * 0.3, laneW * 0.07, 0, 0, Math.PI * 2);
   ctx.fill();

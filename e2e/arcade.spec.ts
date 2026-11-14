@@ -10,7 +10,7 @@ test('arcade entrance is keyboard playable in reduced motion and exposes room en
   await toy.focus();
   for (let i = 0; i < 5; i++) await page.keyboard.press('Enter');
   await expect(page.getByRole('status').filter({ hasText: 'Five sparks' })).toBeVisible();
-  await page.getByRole('link', { name: 'Join a room' }).first().click();
+  await page.getByRole('link', { name: 'Join with a code' }).first().click();
   await expect(page.getByRole('tab', { name: 'Join with a code' })).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByLabel('Room code', { exact: true })).toBeVisible();
   await noHorizontalScroll(page);
@@ -64,13 +64,13 @@ test('timing toy catches at the gate, rejects duplicate catches and stops on req
 
 test('arcade section and skip links preserve the hash route', async ({ page }) => {
   await page.goto(BASE_URL);
-  await page.getByRole('link', { name: 'Explore the arcade' }).click();
-  await expect(page.getByRole('heading', { name: 'Pick your kind of trouble.' })).toBeVisible();
+  await page.getByRole('link', { name: 'See the cabinets' }).click();
+  await expect(page.getByRole('heading', { name: 'Pick a game, pick a fight.' })).toBeVisible();
   await expect(page).not.toHaveURL(/#the-games/);
   await page.getByRole('link', { name: 'Skip to content' }).focus();
   await page.keyboard.press('Enter');
   await expect(page.locator('main')).toBeFocused();
-  await expect(page.getByRole('heading', { level: 1 })).toContainText('Small games.');
+  await expect(page.getByRole('heading', { level: 1 })).toContainText('Insert friends');
 });
 
 test('tablet navigation keeps a route back to the party and shows disconnected seats', async ({ browser }) => {

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Choice } from './scoring';
 import type { MajorityState } from './types';
 
-const COLORS = { A: '#ff8c7e', B: '#f8cf46' } as const;
+const COLORS = { A: '#ff5470', B: '#3fe0d0' } as const;
 
 function useCountdown(endsAt: number, serverNow: () => number, active: boolean): number {
   const [left, setLeft] = useState(0);
@@ -161,7 +161,7 @@ export default function MajorityTrapClient(props: GameClientProps<MajorityState>
               const total = Math.max(1, state.reveal!.counts.A + state.reveal!.counts.B);
               const isMin = state.reveal!.minority === c;
               return (
-                <div key={c} className="rounded-3xl bg-midnight p-4 ring-2" style={{ ['--tw-ring-color' as string]: isMin ? COLORS[c] : '#2b3558' }}>
+                <div key={c} className="rounded-3xl bg-midnight p-4 ring-2" style={{ ['--tw-ring-color' as string]: isMin ? COLORS[c] : '#463e5e' }}>
                   <div className="flex items-baseline justify-between">
                     <span className="font-display text-2xl font-extrabold" style={{ color: COLORS[c] }}>{c}</span>
                     <span className="font-display text-3xl font-extrabold tabular-nums">{n}</span>

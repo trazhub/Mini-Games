@@ -104,9 +104,9 @@ export function createOrbitView(opts: OrbitViewOptions): OrbitView {
         centre = this.add.image(C, C, ART.centre).setDepth(0.5);
       }
       gfx = this.add.graphics().setDepth(1);
-      hud = this.add.text(18, 14, '', { fontFamily: 'DM Sans Variable, system-ui, sans-serif', fontSize: '24px', color: '#e9eeff', fontStyle: 'bold', stroke: '#0b1226', strokeThickness: 4 });
-      big = this.add.text(C, C, '', { fontFamily: 'Bricolage Grotesque Variable, system-ui, sans-serif', fontSize: '120px', color: '#ffffff', fontStyle: '800' }).setOrigin(0.5).setDepth(10);
-      popText = this.add.text(0, 0, '', { fontFamily: 'DM Sans Variable, system-ui, sans-serif', fontSize: '22px', color: '#ffe7a3', fontStyle: 'bold' }).setOrigin(0.5).setVisible(false).setDepth(9);
+      hud = this.add.text(18, 14, '', { fontFamily: 'IBM Plex Sans Variable, system-ui, sans-serif', fontSize: '24px', color: '#e9eeff', fontStyle: 'bold', stroke: '#0b1226', strokeThickness: 4 });
+      big = this.add.text(C, C, '', { fontFamily: 'Pixelify Sans Variable, system-ui, sans-serif', fontSize: '120px', color: '#ffffff', fontStyle: '800' }).setOrigin(0.5).setDepth(10);
+      popText = this.add.text(0, 0, '', { fontFamily: 'IBM Plex Sans Variable, system-ui, sans-serif', fontSize: '22px', color: '#ffe7a3', fontStyle: 'bold' }).setOrigin(0.5).setVisible(false).setDepth(9);
     }
     override update() {
       draw(this);
@@ -136,7 +136,7 @@ export function createOrbitView(opts: OrbitViewOptions): OrbitView {
     let t = nameLabels.get(id);
     if (!t) {
       t = scene.add
-        .text(0, 0, (opts.names[id] ?? '?').slice(0, 10), { fontFamily: 'DM Sans Variable, system-ui, sans-serif', fontSize: '15px', color: '#e9eeff', fontStyle: 'bold', stroke: '#0b1226', strokeThickness: 4 })
+        .text(0, 0, (opts.names[id] ?? '?').slice(0, 10), { fontFamily: 'IBM Plex Sans Variable, system-ui, sans-serif', fontSize: '15px', color: '#e9eeff', fontStyle: 'bold', stroke: '#0b1226', strokeThickness: 4 })
         .setOrigin(0.5)
         .setDepth(5);
       nameLabels.set(id, t);

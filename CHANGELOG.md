@@ -5,6 +5,16 @@ All notable changes to this project are documented here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- New look aimed at adults who remember arcades and LAN nights: dark carpet background, amber marquee lighting, pixel
+  display type (Pixelify Sans) with IBM Plex Sans body text, square hard-edged controls, scanline-framed game art, and
+  drier copy. Replaces the pastel, rounded, mascot-driven design.
+- Game posters and in-game art (Lane Runner, Orbit Swap) regenerated as airbrushed 1980s arcade-flyer illustrations
+  instead of cartoon characters; Lane Runner is now a dusk road, Orbit Swap a nebula with astronaut tokens.
+- Avatars redrawn as 9x9 pixel sprites (same ids), and the home page demo is a CRT-style screen.
+- Majority Trap answers use cherry and cyan instead of salmon and yellow.
+
 ### Added
 
 - Illustrated posters (AI-generated with Canva, 960x720 JPG) for Majority Trap, Echo Steps, Orbit Swap and
