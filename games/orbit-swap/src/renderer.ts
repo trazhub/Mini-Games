@@ -1,5 +1,10 @@
 import type { GameEventMessage } from '@minigamehub/game-core';
 import Phaser from 'phaser';
+import asteroidUrl from './assets/asteroid.png';
+import astronautUrl from './assets/astronaut.png';
+import backdropUrl from './assets/backdrop.jpg';
+import centreUrl from './assets/centre.png';
+import starUrl from './assets/star.png';
 import { LANE_RADIUS_PX, LANES, ORBIT, TAU } from './constants';
 import { SnapshotBuffer } from './interpolate';
 import { hazardAngle, type Hazard } from './sim';
@@ -9,6 +14,22 @@ const SIZE = 640;
 const C = SIZE / 2;
 const PALETTE = [0xff6858, 0x68ddb1, 0xf8cf46, 0x4b8eff, 0xffb3c9, 0x94e1ed, 0xc6d579, 0xf6f1e8];
 const INTERP_DELAY_MS = 110;
+
+/** Texture keys for the illustrated art (AI-generated; see docs/LEGAL.md). Missing art falls back to shapes. */
+const ART = { bg: 'os-bg', centre: 'os-centre', asteroid: 'os-asteroid', astronaut: 'os-astronaut', star: 'os-star' } as const;
+
+/** Reusable sprites: one per thing drawn this frame, hidden when not needed (no per-frame allocation). */
+function acquire(pool: Phaser.GameObjects.Image[], i: number, scene: Phaser.Scene, key: string, depth: number): Phaser.GameObjects.Image {
+  let im = pool[i];
+  if (!im) {
+    im = scene.add.image(0, 0, key).setDepth(depth);
+    pool[i] = im;
+  }
+  return im.setVisible(true);
+}
+function releaseFrom(pool: Phaser.GameObjects.Image[], from: number): void {
+  for (let i = from; i < pool.length; i++) pool[i]!.setVisible(false);
+}
 
 export interface OrbitViewOptions {
   parent: HTMLElement;
@@ -53,6 +74,11 @@ export function createOrbitView(opts: OrbitViewOptions): OrbitView {
   let hud: Phaser.GameObjects.Text;
   let big: Phaser.GameObjects.Text;
   let popText: Phaser.GameObjects.Text;
+  let centre: Phaser.GameObjects.Image | null = null;
+  let artReady = false;
+  const asteroidSprites: Phaser.GameObjects.Image[] = [];
+  const starSprites: Phaser.GameObjects.Image[] = [];
+  const astronautSprites: Phaser.GameObjects.Image[] = [];
 
   const simTime = () => {
     const last = buffer.latest;
@@ -64,9 +90,21 @@ export function createOrbitView(opts: OrbitViewOptions): OrbitView {
     constructor() {
       super('orbit');
     }
+    preload() {
+      this.load.image(ART.bg, backdropUrl);
+      this.load.image(ART.centre, centreUrl);
+      this.load.image(ART.asteroid, asteroidUrl);
+      this.load.image(ART.astronaut, astronautUrl);
+      this.load.image(ART.star, starUrl);
+    }
     create() {
-      gfx = this.add.graphics();
-      hud = this.add.text(18, 14, '', { fontFamily: 'DM Sans Variable, system-ui, sans-serif', fontSize: '24px', color: '#e9eeff', fontStyle: 'bold' });
+      artReady = Object.values(ART).every((k) => this.textures.exists(k));
+      if (artReady) {
+        this.add.image(C, C, ART.bg).setDisplaySize(SIZE, SIZE).setDepth(-1);
+        centre = this.add.image(C, C, ART.centre).setDepth(0.5);
+      }
+      gfx = this.add.graphics().setDepth(1);
+      hud = this.add.text(18, 14, '', { fontFamily: 'DM Sans Variable, system-ui, sans-serif', fontSize: '24px', color: '#e9eeff', fontStyle: 'bold', stroke: '#0b1226', strokeThickness: 4 });
       big = this.add.text(C, C, '', { fontFamily: 'Bricolage Grotesque Variable, system-ui, sans-serif', fontSize: '120px', color: '#ffffff', fontStyle: '800' }).setOrigin(0.5).setDepth(10);
       popText = this.add.text(0, 0, '', { fontFamily: 'DM Sans Variable, system-ui, sans-serif', fontSize: '22px', color: '#ffe7a3', fontStyle: 'bold' }).setOrigin(0.5).setVisible(false).setDepth(9);
     }
@@ -125,31 +163,53 @@ export function createOrbitView(opts: OrbitViewOptions): OrbitView {
     if (shake > 0) shake = Math.max(0, shake - 0.8);
     scene.cameras.main.setScroll(off, off);
 
-    // Orbits + planet
+    // Lane rings (on top of the backdrop's own soft ripples) and the centre planet
     for (let l = 0; l < LANES; l++) {
-      g.lineStyle(2, 0x4b6f85, 1);
+      g.lineStyle(artReady ? 4 : 2, artReady ? 0xffffff : 0x4b6f85, artReady ? 0.4 : 1);
       g.strokeCircle(C, C, LANE_RADIUS_PX[l]!);
     }
-    g.fillStyle(0x243c51, 1);
-    g.fillCircle(C, C, 74);
-    g.fillStyle(0x4b8eff, 0.6);
-    g.fillCircle(C, C, 52);
-    g.fillStyle(0xffb547, 1);
-    g.fillCircle(C, C, 22);
+    if (artReady && centre) {
+      const pulse = opts.reducedMotion ? 1 : 1 + Math.sin(now / 700) * 0.04;
+      centre.setPosition(C, C).setDisplaySize(170 * pulse, 170 * pulse);
+    } else {
+      g.fillStyle(0x243c51, 1);
+      g.fillCircle(C, C, 74);
+      g.fillStyle(0x4b8eff, 0.6);
+      g.fillCircle(C, C, 52);
+      g.fillStyle(0xffb547, 1);
+      g.fillCircle(C, C, 22);
+    }
 
-    // Hazards: arcs on their lane, extrapolated from server-provided motion.
+    // Hazards: arcs on their lane, extrapolated from server-provided motion. With art, a chain of
+    // asteroids covers the arc (the hit area is still the server's arc, so the picture matches it).
+    let ai = 0;
     for (const h of hazards.values()) {
       if (t < h.t0 - 50 || t > h.expiresAt) continue;
       const a = hazardAngle(h, Math.max(t, h.t0));
       const fade = Math.min(1, (t - h.t0) / 250, (h.expiresAt - t) / 400);
-      g.lineStyle(20, 0xff6b5e, Math.max(0.15, fade));
-      g.beginPath();
-      g.arc(C, C, laneRadius(h.lane), a - h.width / 2, a + h.width / 2, false);
-      g.strokePath();
+      if (artReady) {
+        const r = laneRadius(h.lane);
+        const n = Math.max(2, Math.round((h.width * r) / 30));
+        for (let k = 0; k < n; k++) {
+          const ang = a - h.width / 2 + (h.width * (k + 0.5)) / n;
+          acquire(asteroidSprites, ai++, scene, ART.asteroid, 2)
+            .setPosition(C + Math.cos(ang) * r, C + Math.sin(ang) * r)
+            .setDisplaySize(38, 38)
+            .setAlpha(Math.max(0.2, fade))
+            .setRotation(opts.reducedMotion ? 0 : now / 900 + k);
+        }
+      } else {
+        g.lineStyle(20, 0xff6b5e, Math.max(0.15, fade));
+        g.beginPath();
+        g.arc(C, C, laneRadius(h.lane), a - h.width / 2, a + h.width / 2, false);
+        g.strokePath();
+      }
     }
+    releaseFrom(asteroidSprites, ai);
 
     // Stars
     const tNow = simTime();
+    let si = 0;
     for (const s of stars.values()) {
       if (tNow > s[4]) continue;
       const r = laneRadius(s[1]);
@@ -157,13 +217,28 @@ export function createOrbitView(opts: OrbitViewOptions): OrbitView {
       const y = C + Math.sin(s[2]) * r;
       const gold = s[3] >= ORBIT.goldStarPoints;
       const spin = opts.reducedMotion ? 0 : now / 900;
-      g.fillStyle(gold ? 0xffd34d : 0xffe7a3, 1);
-      g.fillPoints(starPoints(x, y, gold ? 15 : 11, gold ? 7 : 5, spin), true);
+      if (artReady) {
+        if (gold) {
+          g.fillStyle(0xffd34d, 0.3);
+          g.fillCircle(x, y, 26);
+        }
+        const size = gold ? 40 : 28;
+        acquire(starSprites, si++, scene, ART.star, 3)
+          .setPosition(x, y)
+          .setDisplaySize(size, size)
+          .setRotation(opts.reducedMotion ? 0 : Math.sin(now / 400 + s[0]) * 0.3)
+          .clearTint();
+      } else {
+        g.fillStyle(gold ? 0xffd34d : 0xffe7a3, 1);
+        g.fillPoints(starPoints(x, y, gold ? 15 : 11, gold ? 7 : 5, spin), true);
+      }
     }
+    releaseFrom(starSprites, si);
 
     // Players (interpolated)
     const ps = buffer.sample(t);
     let remaining = full?.matchMs ?? ORBIT.matchMs;
+    let pi = 0;
     if (ps) {
       for (let i = 0; i < ps.length; i++) {
         const id = order[i];
@@ -178,16 +253,26 @@ export function createOrbitView(opts: OrbitViewOptions): OrbitView {
         const alpha = conn ? (blink ? 0.35 : 1) : 0.25;
         if (mine) {
           g.lineStyle(3, 0xffffff, 0.9);
-          g.strokeCircle(x, y, 22);
+          g.strokeCircle(x, y, artReady ? 35 : 22);
         }
-        g.fillStyle(colorOf(id), alpha);
-        g.fillCircle(x, y, 14);
-        g.fillStyle(0x0b1226, alpha);
-        g.fillCircle(x + Math.cos(ang + Math.PI / 2) * 0 , y, 5);
+        if (artReady) {
+          // Each player's colour is a ring and soft glow under their astronaut.
+          g.fillStyle(colorOf(id), alpha * 0.3);
+          g.fillCircle(x, y, 29);
+          g.lineStyle(4, colorOf(id), alpha);
+          g.strokeCircle(x, y, 29);
+          acquire(astronautSprites, pi++, scene, ART.astronaut, 4).setPosition(x, y).setDisplaySize(56, 56).setAlpha(alpha);
+        } else {
+          g.fillStyle(colorOf(id), alpha);
+          g.fillCircle(x, y, 14);
+          g.fillStyle(0x0b1226, alpha);
+          g.fillCircle(x + Math.cos(ang + Math.PI / 2) * 0, y, 5);
+        }
         const label = labelFor(scene, id);
-        label.setPosition(x, y - 28).setAlpha(conn ? 1 : 0.4);
+        label.setPosition(x, y - (artReady ? 42 : 28)).setAlpha(conn ? 1 : 0.4);
       }
     }
+    releaseFrom(astronautSprites, pi);
     remaining = Math.max(0, (full?.matchMs ?? ORBIT.matchMs) - Math.max(0, simTime()));
 
     // HUD
