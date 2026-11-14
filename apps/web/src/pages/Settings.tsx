@@ -1,4 +1,5 @@
 import { useId, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { GAMES } from '../games/registry';
 import { sfx, setMusic, unlockAudio } from '../lib/audio';
 import { updateSettings, useSettings } from '../lib/settings';
@@ -49,10 +50,11 @@ export function Settings() {
         <h2 id="help" className="text-2xl font-bold">Help</h2>
         <div className="mt-4 space-y-3">
           <Faq q="How do I invite friends?">Create a room, then copy the invite link or share the 5-letter code. They open the link or type the code on the Join tab.</Faq>
-          <Faq q="Do I need an account?">No. You get a temporary guest session. Closing the tab ends it; reloading the page keeps it.</Faq>
+          <Faq q="Do I need an account?">No. You get a guest player automatically. The first tab you open keeps it between visits; extra tabs are separate players that end when closed. To use the same player on another device, make a recovery code on the Profile page.</Faq>
           <Faq q="I lost connection during a game.">The game keeps running for everyone. Your tab reconnects automatically for up to a minute and puts you back in the same match.</Faq>
           <Faq q="Why can't I start the game?">The host needs enough connected players for that game and everyone else must be ready. The Start button says what is missing.</Faq>
-          <Faq q="Can I play on my phone?">Yes. All three launch games have touch controls. Landscape works best for Orbit Swap.</Faq>
+          <Faq q="Something here breaks my rights or a trademark.">See the <Link className="font-semibold text-chalk underline" to="/legal">legal notes</Link> for how to report it. It will be looked at promptly.</Faq>
+          <Faq q="Can I play on my phone?">Yes. Every game has touch controls. Landscape works best for Orbit Swap.</Faq>
         </div>
       </section>
     </div>

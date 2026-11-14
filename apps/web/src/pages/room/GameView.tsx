@@ -58,7 +58,7 @@ export function GameView() {
     .sort((a, b) => b.score - a.score);
 
   return (
-    <div className={`game-stage stage-${gameId}`} style={{ '--game-accent': gameId === 'orbit-swap' ? '#83b1ff' : gameId === 'echo-steps' ? '#68ddb1' : '#ff8c7e' } as CSSProperties}><div className="page-width">
+    <div className={`game-stage stage-${gameId}`} style={{ '--game-accent': gameId === 'orbit-swap' ? '#83b1ff' : gameId === 'echo-steps' ? '#68ddb1' : gameId === 'lane-runner' ? '#3ee0a0' : '#ff8c7e' } as CSSProperties}><div className="page-width">
       <div className="game-toolbar mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h1 className="game-title text-2xl font-extrabold sm:text-3xl">{meta.name}</h1>

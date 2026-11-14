@@ -5,6 +5,7 @@ import { PartyProvider } from './lib/party';
 import { setMusic } from './lib/audio';
 import { useSettings } from './lib/settings';
 import { Home } from './pages/Home';
+import { Legal } from './pages/Legal';
 import { Library } from './pages/Library';
 import { NotFound } from './pages/NotFound';
 import { Play } from './pages/Play';
@@ -44,6 +45,7 @@ export default function App() {
             <Route path="room/:code/*" element={<RoomShell />} />
             <Route path="profile" element={<Profile />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="legal" element={<Legal />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>

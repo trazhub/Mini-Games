@@ -1,8 +1,8 @@
 /** Original SVG poster illustrations; lightweight focus/hover previews use CSS. */
 export function GameArt({ id, className = '' }: { id: string; className?: string }) {
-  const names: Record<string, string> = { 'majority-trap': 'Majority Trap: a conspiring crowd and one odd vote', 'echo-steps': 'Echo Steps: four rhythm pads in a repeating sequence', 'orbit-swap': 'Orbit Swap: a pilot, three orbital lanes and collectible stars' };
+  const names: Record<string, string> = { 'majority-trap': 'Majority Trap: a conspiring crowd and one odd vote', 'echo-steps': 'Echo Steps: four rhythm pads in a repeating sequence', 'orbit-swap': 'Orbit Swap: a pilot, three orbital lanes and collectible stars', 'lane-runner': 'Lane Runner: a runner on a three-lane track dodging blocks and grabbing coins' };
   return <svg viewBox="0 0 480 350" className={`game-art art-${id} ${className}`} role="img" aria-label={names[id] ?? 'Game artwork'} preserveAspectRatio="xMidYMid slice">
-    {id === 'majority-trap' && <Majority />}{id === 'echo-steps' && <Echo />}{id === 'orbit-swap' && <Orbit />}
+    {id === 'majority-trap' && <Majority />}{id === 'echo-steps' && <Echo />}{id === 'orbit-swap' && <Orbit />}{id === 'lane-runner' && <Lanes />}
   </svg>;
 }
 
@@ -33,6 +33,16 @@ function Echo() {
       <g className="preview-pad pad-four"><path d="m-71-53 62 62-62 62-62-62Z" fill="#32856a" stroke="#202724" strokeWidth="2.5" /><text x="-71" y="22" textAnchor="middle" fontSize="39" fontWeight="800" fill="#fffaf2">4</text></g>
     </g><path d="M49 127v49m-12-38v27m24-41v53M425 151v49m-12-38v27m24-41v53" stroke="#202724" strokeWidth="4" strokeLinecap="round" />
     <g fill="#202724"><circle cx="201" cy="327" r="4" /><circle cx="226" cy="327" r="4" /><circle cx="251" cy="327" r="4" /><circle cx="276" cy="327" r="4" /></g>
+  </>;
+}
+
+function Lanes() {
+  return <><path fill="#3ee0a0" d="M0 0h480v350H0z" /><path fill="#16302a" d="M205 0h70l140 350H65Z" stroke="#202724" strokeWidth="3" />
+    <g stroke="#fffaf2" strokeWidth="3" strokeDasharray="16 14" opacity=".7"><path d="M228 0 150 350M252 0l78 350" /></g>
+    <g className="preview-stars"><circle cx="262" cy="92" r="9" fill="#f8cf46" stroke="#202724" strokeWidth="2.5" /><circle cx="305" cy="198" r="15" fill="#f8cf46" stroke="#202724" strokeWidth="3" /></g>
+    <rect x="172" y="132" width="46" height="34" rx="4" fill="#ff6858" stroke="#202724" strokeWidth="3" /><rect x="140" y="226" width="70" height="52" rx="6" fill="#ff6858" stroke="#202724" strokeWidth="3" />
+    <g className="preview-pilot"><ellipse cx="240" cy="326" rx="36" ry="9" fill="#202724" opacity=".3" /><rect x="212" y="262" width="56" height="62" rx="16" fill="#fffaf2" stroke="#202724" strokeWidth="3.5" /><rect x="224" y="278" width="32" height="12" rx="3" fill="#202724" /></g>
+    <path d="m396 40 8 18 20 3-15 13 4 20-17-10-17 10 4-20-15-13 20-3Z" fill="#f8cf46" stroke="#202724" strokeWidth="3" />
   </>;
 }
 

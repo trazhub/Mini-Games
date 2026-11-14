@@ -207,3 +207,10 @@ svg { flex-shrink: 0; }
 /* Keep reduced motion last so no responsive or game rule can override it. */
 @media(prefers-reduced-motion: reduce) { *,*::before,*::after { animation: none !important; transition-duration: .001ms !important; scroll-behavior: auto !important; } }
 html.reduce-motion *,html.reduce-motion *::before,html.reduce-motion *::after { animation: none !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+
+/* Solo start button shares the poster-play row style. */
+.poster-solo { width: 100%; text-align: left; background: transparent; cursor: pointer; margin-top: 20px; }
+.poster-solo + .poster-play { margin-top: 0; border-top: 0; }
+.poster-solo:disabled { opacity: .6; cursor: progress; }
+.poster-lane-runner .poster-play:hover > span { background: var(--mint); transform: rotate(-30deg); }
+.poster-lane-runner .poster-picture { border-radius: 4px 4px 54px 4px; }

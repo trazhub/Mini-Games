@@ -38,7 +38,7 @@ export function Layout() {
     </header>
     <main id="main" tabIndex={-1} className="site-main"><Outlet /></main>
     <footer className="arcade-footer"><div className="page-width footer-top"><div><Logo /><p>Good friends. Questionable strategies.<br />One more round.</p></div>
-      <nav aria-label="Footer"><Link to="/games">Find your next game <Arrow /></Link><Link to="/play">Make a little room <Arrow /></Link><Link to="/settings">Settings and help <Arrow /></Link><Link to="/profile">Your player profile <Arrow /></Link></nav>
+      <nav aria-label="Footer"><Link to="/games">Find your next game <Arrow /></Link><Link to="/play">Make a little room <Arrow /></Link><Link to="/settings">Settings and help <Arrow /></Link><Link to="/profile">Your player profile <Arrow /></Link><Link to="/legal">Legal notes <Arrow /></Link></nav>
     </div><div className="page-width footer-bottom"><span>Free to play. Better together.</span><span>Guest sessions are temporary. Your nickname is visible to your party.</span></div></footer>
     <Toasts />
   </div>;

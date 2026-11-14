@@ -1,5 +1,6 @@
 import type { GameClientProps } from '@minigamehub/game-core';
 import { echoStepsMeta } from '@minigamehub/game-echo-steps/meta';
+import { laneRunnerMeta } from '@minigamehub/game-lane-runner/meta';
 import { majorityTrapMeta } from '@minigamehub/game-majority-trap/meta';
 import { orbitSwapMeta } from '@minigamehub/game-orbit-swap/meta';
 import type { GameMeta } from '@minigamehub/shared';
@@ -19,6 +20,7 @@ export const GAMES: readonly ClientGame[] = [
   { meta: majorityTrapMeta, load: () => import('@minigamehub/game-majority-trap/client') as never },
   { meta: echoStepsMeta, load: () => import('@minigamehub/game-echo-steps/client') as never },
   { meta: orbitSwapMeta, load: () => import('@minigamehub/game-orbit-swap/client') as never },
+  { meta: laneRunnerMeta, load: () => import('@minigamehub/game-lane-runner/client') as never },
 ];
 
 export const GAME_BY_ID: Record<string, ClientGame> = Object.fromEntries(GAMES.map((g) => [g.meta.id, g]));
