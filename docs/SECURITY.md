@@ -47,11 +47,19 @@ input log in `arcade:chunk` messages; the server replays it.
   released on submission.
 - **Never submitting / disconnecting.** The match ends at
   `start + maxTicks / hz * 1000 + 5 s` on the server clock regardless of clients, with 0 for
-  anyone who did not submit. It ends earlier once every connected participant has submitted, so
-  a disconnected or silent player cannot hold the others hostage.
+  anyone who did not submit. It ends earlier once every participant who has not been removed from
+  the party has submitted. A disconnected player keeps counting only until the room removes them
+  (reconnect grace), so a socket blip does not zero a live run and a silent player can delay the
+  others by at most the grace period or the deadline, whichever comes first.
+- **Replay cost.** `sim.replay` runs synchronously on the room's tick, once per participant per
+  match, bounded by `maxTicks`. Today's sims are cheap; a heavier sim needs an explicit cost budget
+  (measure the worst-case replay time at `maxTicks` and keep it to a few milliseconds) or the
+  replay must move off the tick.
 - **Not prevented.** Replay proves a score is reachable from the inputs, not that a human produced
-  them: a bot can play perfectly, or compute an optimal run offline and submit it. In short:
-  replay stops forged scores but not scripted perfect play; leaderboards are for fun.
+  them: a bot can play perfectly, or compute an optimal run offline and submit it. Replay also does
+  not check wall-clock plausibility: a complete log can be submitted at t = 0 of the match. Both are
+  accepted on purpose. In short: replay stops forged scores but not scripted perfect play;
+  leaderboards are for fun.
 
 ## Nicknames are labels, not credentials
 
@@ -79,8 +87,14 @@ answer `501 recovery_unavailable`.
 
 - **A recovery code is a bearer secret.** Anyone holding it can become that guest (stats, history).
   The UI should present it with a copy hint like "keep this private; anyone with it can play as you".
-  Requesting a new code replaces the stored one, so the old code stops working (`404 unknown_code`);
-  that is the revocation path if a code leaks. Restoring does not revoke other sessions.
+  Requesting a new code replaces the stored one, so the old code stops working for **future**
+  restores (`404 unknown_code`). It does not revoke anything already obtained: a session token
+  issued from a leaked code, or a stolen token, stays valid until it expires, and there is no
+  per-token or per-guest revocation short of rotating `SESSION_SECRET`, which logs everyone out
+  (and invalidates every recovery code). Restoring does not revoke other sessions either.
+- **Sliding refresh has no absolute cap.** Each refresh is bounded to `now + SESSION_TTL_HOURS`,
+  but the chain of refreshes is unbounded, so a token that keeps being refreshed (including a
+  stolen one) never ages out. An absolute cap based on the original `iat` is future work.
 - **Format:** 16 Crockford base32 symbols (no `I`, `L`, `O`, `U`), `XXXX-XXXX-XXXX-XXXX`, 80 bits from
   `crypto.randomBytes`. Input is uppercased and spaces/dashes are ignored; wrong length or any
   character outside the alphabet is rejected (`400 invalid_code`) rather than guessed.
@@ -120,6 +134,16 @@ is never mandatory. Prune old match rows with SQL if you want a retention policy
 - Abuse beyond the host's kick (reporting, persistent bans across parties, profanity filtering) is
   not implemented; see the roadmap.
 - The ping/pong clock offset is used for display only; it never influences scoring.
+
+## Residual risks
+
+- **IPv6 and per-IP limits.** Every per-IP limiter (guest creation, recovery restore, joins, room,
+  daily and `/api/me` lookups) keys on the full client address. One IPv6 subscriber usually holds
+  a whole /64 (or more), so they can rotate addresses and get a fresh bucket each time. Keying
+  IPv6 clients by their /64 prefix (and leaning on the proxy's own `limit_req`) is future work.
+- **Session revocation.** No per-token revocation and no absolute session cap (see "Recovery codes").
+- **Arcade scores.** Scripted play, offline-optimised runs and instant submissions are accepted
+  (see "Arcade games: threats and limits").
 
 ## Reporting
 

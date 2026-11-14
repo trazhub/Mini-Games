@@ -9,7 +9,7 @@
 | Blank page on `vite preview` | Preview base mismatch (fixed in `vite.config.ts`) | Open `http://localhost:<port>/Mini-Games/` (note the path) |
 | Port 4173/5173/2567 already in use | Another process owns it (e.g. another dev server) | Pick another port: `npm run preview -w @minigamehub/web -- --port 4180`, `PORT=2600` |
 | e2e fails immediately with "port already used" | A dev server (note: `tsx watch` respawns children - stop the supervisor too) holds 2567/4180 | Stop `npm run dev`, then rerun `npm run test:e2e` |
-| "Session expired - please refresh" | Server restarted with a new dev secret, or 24 h passed | The client retries automatically once; otherwise reload |
+| "Session expired - please refresh" | Server restarted with a new dev secret, or the token expired (about 1 year without use; every `POST /api/guest` with a valid token refreshes it) | The client retries automatically once; otherwise reload |
 | "Too many attempts" (429) | Per-IP join/guest rate limit | Wait a minute; raise `JOIN_RATE_PER_MIN` / `GUEST_RATE_PER_MIN` for tests or NAT-heavy networks (school/office share one IP) |
 | Two tabs kick each other | Same guest id in both tabs | Tabs are separate guests by default (sessionStorage). The same *tab* reopened elsewhere takes over |
 | "Needs 3 players" | Majority Trap needs 3-12 connected players | Add players; the lobby shows each game's requirement |

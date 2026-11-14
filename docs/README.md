@@ -42,5 +42,5 @@ Start with the [project README](../README.md). Contributors: see [CONTRIBUTING](
 | [superpowers/specs/2026-11-14-nostalgia-arcade-design.md](superpowers/specs/2026-11-14-nostalgia-arcade-design.md) | Design spec for the nostalgia arcade |
 | [superpowers/plans/2026-11-14-foundation-and-open-source.md](superpowers/plans/2026-11-14-foundation-and-open-source.md) | Plan 0: foundation and open-source hygiene |
 
-Placeholders such as `<tailscale-ip>`, `<outbound-ip>`, `<vm-host>` and `<gateway>` in these documents
+Placeholders such as `<tailscale-ip>`, `<outbound-ip>`, `<vm-host>`, `<gateway>` and `<old-vm-ip>` in these documents
 stand for site-specific values that are deliberately not published.

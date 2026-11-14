@@ -1,5 +1,7 @@
 # Prompt: set up the Nginx reverse proxy for backend.opop.eu.org
 
+> Before pasting this to an agent, substitute the placeholders (`<tailscale-ip>`, `<outbound-ip>`, `<vm-host>`, `<gateway>`, `<old-vm-ip>`, where they appear) with your own values.
+
 Paste everything below the line into an AI agent (or hand it to the admin) that has shell access to
 the **existing Nginx proxy host**. Not for the game VM.
 

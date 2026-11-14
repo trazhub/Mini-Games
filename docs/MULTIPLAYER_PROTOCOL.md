@@ -8,19 +8,34 @@ in `packages/shared/src/{protocol,types}.ts` and are shared by client and server
 
 | Method + path | Purpose | Notes |
 | --- | --- | --- |
-| `POST /api/guest` | Issue a guest session `{guestId, token, expiresAt}` | 30/min/IP; token valid 24 h |
+| `POST /api/guest` | Issue or refresh a guest session `{guestId, token, expiresAt}` (see "Guest sessions" below) | 30/min/IP (`429`); token valid about 1 year (`SESSION_TTL_HOURS`, default 8760), refreshed on use; `200` refreshed, `201` new guest, `400 bad_request` for a malformed body, `413` for a body over 2 KB |
+| `POST /api/guest/recovery` | Issue a recovery code `{code}` for the caller (replaces any previous code) | `Authorization: Bearer <token>`; shares the guest limiter (`429`); `401 unauthorized`, `501 recovery_unavailable` without a database, `503 unavailable` on a database error; `Cache-Control: no-store` |
+| `POST /api/guest/restore` | Body `{code}`: restore that guest, returns a fresh session `{guestId, token, expiresAt}` | 10/min/IP (`429`); `400 invalid_code` (wrong length/alphabet), `404 unknown_code`, `501 recovery_unavailable` without a database, `503 unavailable`; `Cache-Control: no-store` |
 | `GET /api/rooms/:code` | `{exists, players, capacity, phase, joinable}` | 60/min/IP; no member names |
-| `GET /api/me/stats` | The caller's persisted stats | `Authorization: Bearer <token>` |
-| `GET /api/me/bests` | The caller's personal bests `{bests: [{gameId, mode, best, plays}]}` (`mode`: `solo`, `party`, `daily`), ordered by game then mode; `[]` without a database | `Authorization: Bearer <token>`; `401 unauthorized` otherwise |
+| `GET /api/me/stats` | The caller's persisted stats | 60/min/IP (lookup limiter, checked before auth, `429`); `Authorization: Bearer <token>`, `401 unauthorized` otherwise |
+| `GET /api/me/bests` | The caller's personal bests `{bests: [{gameId, mode, best, plays}]}` (`mode`: `solo`, `party`, `daily`), ordered by game then mode; `[]` without a database | 60/min/IP (lookup limiter, checked before auth, `429`); `Authorization: Bearer <token>`, `401 unauthorized` otherwise |
 | `GET /api/daily/:gameId` | Today's (UTC) daily-challenge board `{day, entries: [{rank, nickname, avatar, score}]}`, top 50 by score, earlier run first on ties; `entries` is `[]` without a database; `404 {error:"unknown_game"}` for unknown or non-arcade games | 60/min/IP; no guest ids |
 | `GET /health` | `{ok, db}` | used by Docker/monitoring |
 | `GET /metrics` | Process + game metrics | loopback or `METRICS_TOKEN` only; Nginx returns 404 publicly |
 | `POST /matchmake/create/party`, `/matchmake/joinById/party` | Colyseus seat reservation | Used by the SDK |
 
+The `/api/rooms`, `/api/daily` and `/api/me/*` lookups share one 60/min/IP budget.
+
+### Guest sessions
+
+`POST /api/guest` with a still-valid token returns a renewed token for the same guest (`200`), with a
+fresh lifetime of about one year. The supported way to present the token is the
+`Authorization: Bearer <token>` header; a body `{resumeToken}` is also accepted as a fallback (the
+header wins when both are valid). An expired, tampered, malformed or foreign-secret token is never an
+error: the client simply gets a new guest (`201`). The request body is limited to 2 KB
+(`413` above that); a body that fails the schema (for example a non-string `resumeToken` or one over
+2048 characters) is `400 bad_request`.
+
 Personal bests live in table `game_scores` (`guest_id`, `game_id`, `mode`, `best`, `plays`,
 `updated_at`; primary key `(guest_id, game_id, mode)`). Every finished match upserts each
-participant's score (`best = greatest(...)`, `plays + 1`, scores rounded and clamped to >= 0); the
-mode is `solo` for a one-player match and `party` otherwise.
+participant's score (`best = greatest(...)`, `plays + 1`, scores stored as
+`min(2147483647, max(0, round(score)))`); the mode is `daily` for a daily-challenge match, otherwise
+`solo` for a one-player match and `party` for more.
 
 Daily challenge runs live in table `daily_runs` (`day`, `game_id`, `guest_id`, `nickname`, `avatar`,
 `score`, `created_at`; primary key `(day, game_id, guest_id)`, so one run per guest, game and UTC day;
@@ -59,6 +74,7 @@ expired token (client fetches a new guest session and retries once), `4403` remo
 | `backToLobby` | - | host | starting, playing (abort), results |
 | `kick` | `{playerId}` | host | any (not self) |
 | `g:action` | `{type, ...<=8 primitive fields}` | participants | playing |
+| `arcade:chunk` | `{i: 0..15, n: 1..16, d: string <= 1400}` with `i < n` (one chunk of a base64url input log; extra fields are dropped) | participants | playing (arcade games) |
 
 Anything else, malformed payloads and flooding are ignored/counted; 8 violations in 10 s
 disconnect the client (close code 4429). Token bucket: 60 burst, 30 msg/s.
@@ -99,6 +115,16 @@ code 4402 to the old tab). A host who stays offline for 8 s is replaced by the l
 connected member; permanent removal (grace expiry, leave) migrates immediately.
 
 ## Game messages
+
+**Arcade games** (any game with `meta.kind: 'arcade'`, e.g. Lane Runner) - at match start the game
+broadcasts the event `arcade:start {seed, config, deadlineMs}` (`deadlineMs` = absolute server epoch
+ms after which missing submissions score 0). State (per viewer, identical for everyone):
+`{seed, config, deadline, submitted: playerId[]}`; no scores before the end. The client plays from
+the seed, then sends its input log as `arcade:chunk` messages; the server replays it and uses only
+its own score. A malformed chunk is a strike; chunks from spectators, outside a match, duplicates or
+after the player's log was accepted are ignored. The match ends when every participant who has not
+been removed from the party has submitted (a disconnected player still counts until their reconnect
+grace expires) or at the deadline. Details: GAME_ENGINE.md, "Arcade games".
 
 **Majority Trap** - action `{type:'answer', answer:'A'|'B', predict:'A'|'B'}` (first submission
 locks). State: `phase(intro|question|reveal|done)`, `round`, `question`, `submitted[]`,

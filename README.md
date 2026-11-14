@@ -11,10 +11,11 @@ no mandatory accounts.
 - **Frontend** - Vite, React, TypeScript, Tailwind CSS, Phaser (Orbit Swap), hash routing. Static,
   hosted on GitHub Pages: <https://trazhub.github.io/Mini-Games/>
 - **Backend** - Node.js, TypeScript, Colyseus, PostgreSQL (Drizzle ORM), Docker Compose. Public
-  endpoint (planned): `https://backend.opop.eu.org` behind an existing Nginx reverse proxy.
-- **Status** - everything below runs and is tested locally. **Nothing has been deployed**: the
-  public endpoints and the GitHub repository have not been verified as live. See
-  [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md).
+  endpoint: `https://backend.opop.eu.org`, served behind an existing external Nginx reverse proxy.
+- **Status** - the backend is deployed behind that proxy (Docker Compose on a single VM); the
+  frontend is a static build published by the Pages workflow. Features on this branch (arcade
+  protocol, Lane Runner, daily challenge, recovery codes) are tested locally and ship with the next
+  deploy. See [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md).
 
 ## Quickstart
 
@@ -93,10 +94,12 @@ infra/  scripts/  e2e/          deployment, tooling, browser tests
 docs/  README.md (index)  LEGAL.md  ...existing guides...  superpowers/{specs,plans}/
 ```
 
-Some entries (`arcade.ts`, `games/lane-runner`) are added by upcoming work. Today: `apps/web` is the
-React frontend, `apps/server` the Colyseus server and DB layer, `packages/shared` the protocol and
-types, `packages/game-core` the plugin interface, RNG and test harness, `infra/` the Docker, Nginx and
-backup files, `scripts/` the load test and the repository hygiene test.
+`apps/web` is the React frontend, `apps/server` the Colyseus server and DB layer, `packages/shared`
+the protocol and types, `packages/game-core` the plugin interface, RNG, test harness and the arcade
+engine (`arcade.ts`, `arcade-client.ts`), `games/lane-runner` the reference arcade game (server side
+and sim), `infra/` the Docker, Nginx and backup files, `scripts/` the load test and the repository
+hygiene test. The web pieces of the arcade foundation (Lane Runner's browser UI, the arcade send
+plumbing, the recovery card, the Classics shelf) are still to come.
 
 ## Documentation
 

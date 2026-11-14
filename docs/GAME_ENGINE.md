@@ -99,9 +99,12 @@ interface InputEvent { tick: number; code: number } // code 0..255, game-defined
 4. The server reassembles the chunks, decodes and validates the log, runs `sim.replay` and stores
    **its own** score. Anything else the client sends (a "score" field, timings) is dropped by the
    room before it reaches the game.
-5. The match ends as soon as every **connected** participant has submitted, or at the deadline.
-   Missing, late or invalid submissions score 0. A disconnected player never blocks the end. With
-   nobody connected the match waits for the deadline (players may still reconnect and submit).
+5. The match ends as soon as every participant who has not been **removed** from the party has
+   submitted, or at the deadline. Missing, late or invalid submissions score 0. A momentary socket
+   drop does not zero a live run: a disconnected player still counts until the room removes them
+   (reconnect grace expired, or kicked), and on reconnect their partial chunk set is discarded so
+   a full resend starts clean. The deadline always ends the match, so nobody can hang the room.
+   Replayed scores are floored and clamped to 0..2147483647.
 
 `getState(viewer)` is `{ seed, config, deadline, submitted: playerId[] }`: no scores before the end.
 `finish` sends every participant's replayed score with `summary: { seed }`.

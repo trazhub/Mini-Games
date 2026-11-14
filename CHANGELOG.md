@@ -14,6 +14,28 @@ All notable changes to this project are documented here. The format follows
 - `scripts/hygiene.test.ts`: fails when a tracked file contains a site-specific network identifier or an
   env file other than the examples, and checks the required open-source files and `package.json` metadata.
 - README badges, a short quick start, and a link to the documentation index.
+- Game kinds (`together`, `arcade`, `action`) and a `solo` flag in `GameMeta`; one-player parties can
+  start games with `minPlayers: 1`.
+- Long-lived guest identity: tokens last about one year and are refreshed by `POST /api/guest`
+  (Bearer header or body `resumeToken`); optional recovery codes (`POST /api/guest/recovery`,
+  `POST /api/guest/restore`, 10 restores/min/IP, only an HMAC stored).
+- Personal bests per game and mode (`game_scores` table, `GET /api/me/bests`).
+- Arcade protocol in `game-core`: seeded browser runs, input logs sent as `arcade:chunk` messages and
+  replayed on the server, which keeps only its own score (`createArcadePlugin`, `ArcadeRecorder`).
+- Lane Runner, the reference arcade game (server side and deterministic sim; browser UI to follow).
+- Daily challenge for arcade games: one attempt per guest and UTC day with a shared seed, and a
+  public board (`GET /api/daily/:gameId`, nickname and avatar only).
+
+### Fixed
+
+- Solo matches never count as wins (party or stored stats).
+- A daily attempt is consumed when the match starts, and a daily start needs a one-member party.
+- A momentary disconnect no longer zeroes a live arcade run (early finish waits for removal or the
+  deadline); replayed arcade scores are clamped to a non-negative int4.
+
+### Security
+
+- `GET /api/me/stats` and `GET /api/me/bests` are rate limited per IP (shared lookup limiter).
 
 ### Changed
 
@@ -21,3 +43,4 @@ All notable changes to this project are documented here. The format follows
   hostname, gateway, obsolete VM address) are now placeholders.
 - `package.json` declares the MIT license, repository, bugs and homepage URLs.
 - Vitest also runs `scripts/**/*.test.ts`.
+- Guest session lifetime grows from 24 h to about one year (sliding); existing tokens stay valid.
