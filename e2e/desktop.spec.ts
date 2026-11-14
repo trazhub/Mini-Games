@@ -11,13 +11,16 @@ test.describe('production build under /Mini-Games/', () => {
     const errors: string[] = [];
     page.on('pageerror', (e) => errors.push(e.message));
     await page.goto(BASE_URL);
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Pick a game');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText('Small games');
+    await page.evaluate(() => document.fonts.ready);
+    await page.screenshot({ path: 'docs/screenshots/home-desktop.png', fullPage: true, animations: 'disabled' });
     const scripts = await page.$$eval('script[src]', (els) => els.map((e) => (e as HTMLScriptElement).getAttribute('src')));
     expect(scripts.every((s) => s!.startsWith('/Mini-Games/assets/'))).toBe(true);
     // deep link straight into a hash route
     await page.goto(`${BASE_URL}#/games`);
     await expect(page.getByRole('heading', { name: 'Games', level: 1 })).toBeVisible();
     await expect(page.getByTestId('game-majority-trap')).toBeVisible();
+    await page.screenshot({ path: 'docs/screenshots/library-desktop.png', fullPage: true, animations: 'disabled' });
     await page.getByRole('button', { name: 'Reaction' }).click();
     await expect(page.getByTestId('game-echo-steps')).toBeVisible();
     await expect(page.getByTestId('game-majority-trap')).toHaveCount(0);
@@ -66,12 +69,14 @@ test.describe('multiplayer in real browsers', () => {
     await joinRoom(p3, code);
     await expect(host.page.getByTestId('player-count')).toHaveText('3 of 12');
     await expect(host.page.getByTestId('player-list')).toContainText('Ivo');
+    await host.page.screenshot({ path: 'docs/screenshots/lobby-desktop.png', fullPage: true, animations: 'disabled' });
     await expect(host.page.getByTestId('start-hint')).toContainText('Pick a game');
 
     await readyUp([p2, p3]);
     await hostStart(host, 'majority-trap');
     for (const p of [host, p2, p3]) await expect(p.page.getByTestId('majority-trap')).toBeVisible({ timeout: 20_000 });
     await expect(host.page).toHaveURL(/\/play$/);
+    await host.page.screenshot({ path: 'docs/screenshots/majority-desktop.png', fullPage: true, animations: 'disabled' });
 
     for (let round = 1; round <= 2; round++) {
       // answer buttons exist only while a question is open (not during the previous reveal)
@@ -93,6 +98,7 @@ test.describe('multiplayer in real browsers', () => {
 
     for (const p of [host, p2, p3]) await expect(p.page.getByTestId('winner-banner')).toBeVisible({ timeout: 25_000 });
     await expect(host.page).toHaveURL(/\/results$/);
+    await host.page.screenshot({ path: 'docs/screenshots/results-desktop.png', fullPage: true, animations: 'disabled' });
     // Server-computed scores: A is the minority every round -> host gets 50/round, others predict A => 100/round
     const rows = host.page.getByTestId('scoreboard').locator('li');
     await expect(rows).toHaveCount(3);
@@ -120,7 +126,7 @@ test.describe('multiplayer in real browsers', () => {
     await expect(p2.page.getByTestId('room-code')).toHaveText(code, { timeout: 15_000 });
     await expect(host.page.getByTestId('player-count')).toHaveText(/2 of 12|3 of 12/);
     await host.page.getByRole('button', { name: 'Leave party' }).click();
-    await expect(host.page.getByRole('heading', { level: 1 })).toContainText('Pick a game');
+    await expect(host.page.getByRole('heading', { level: 1 })).toContainText('Small games');
     await host.ctx.close();
     await p2.ctx.close();
   });

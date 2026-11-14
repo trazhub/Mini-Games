@@ -79,7 +79,7 @@ export function RoomShell() {
       </Notice>
     );
   }
-  if (!p.party) return <div className="px-4 py-24 text-center text-mist" role="status" aria-live="polite">Joining party {code}…</div>;
+  if (!p.party) return <div className="px-4 py-24 text-center text-mist" role="status" aria-live="polite"><span className="loading-piece" aria-hidden="true" />Joining party {code}…</div>;
 
   if (p.party.phase === 'playing') return <GameView />;
   if (p.party.phase === 'results') return <Results />;

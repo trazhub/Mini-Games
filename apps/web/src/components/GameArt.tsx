@@ -1,86 +1,46 @@
-/** Original cover illustrations for the launch games (SVG, no external assets). */
+/** Original SVG poster illustrations; lightweight focus/hover previews use CSS. */
 export function GameArt({ id, className = '' }: { id: string; className?: string }) {
-  return (
-    <svg viewBox="0 0 320 200" className={className} role="img" aria-label={`${id} illustration`} preserveAspectRatio="xMidYMid slice">
-      {id === 'orbit-swap' && <Orbit />}
-      {id === 'echo-steps' && <Echo />}
-      {id === 'majority-trap' && <Majority />}
-      {!['orbit-swap', 'echo-steps', 'majority-trap'].includes(id) && <rect width="320" height="200" fill="#1e2640" />}
-    </svg>
-  );
+  const names: Record<string, string> = { 'majority-trap': 'Majority Trap: a conspiring crowd and one odd vote', 'echo-steps': 'Echo Steps: four rhythm pads in a repeating sequence', 'orbit-swap': 'Orbit Swap: a pilot, three orbital lanes and collectible stars' };
+  return <svg viewBox="0 0 480 350" className={`game-art art-${id} ${className}`} role="img" aria-label={names[id] ?? 'Game artwork'} preserveAspectRatio="xMidYMid slice">
+    {id === 'majority-trap' && <Majority />}{id === 'echo-steps' && <Echo />}{id === 'orbit-swap' && <Orbit />}
+  </svg>;
 }
 
-function Orbit() {
-  return (
-    <>
-      <rect width="320" height="200" fill="#241b3d" />
-      <circle cx="160" cy="100" r="150" fill="#2e2150" opacity=".5" />
-      <g fill="none" stroke="#5a4a93" strokeWidth="2">
-        <circle cx="160" cy="100" r="34" />
-        <circle cx="160" cy="100" r="62" />
-        <circle cx="160" cy="100" r="90" />
-      </g>
-      <circle cx="160" cy="100" r="16" fill="#ffb547" />
-      <circle cx="160" cy="100" r="16" fill="url(#og)" />
-      <defs>
-        <radialGradient id="og" cx="35%" cy="30%">
-          <stop offset="0" stopColor="#fff" stopOpacity=".5" />
-          <stop offset="1" stopColor="#ff8a3d" stopOpacity="0" />
-        </radialGradient>
-      </defs>
-      <path d="M222 100 A62 62 0 0 0 196 49" stroke="#ff6b5e" strokeWidth="10" strokeLinecap="round" fill="none" opacity=".9" />
-      <circle cx="160" cy="38" r="8" fill="#3ddbb0" />
-      <circle cx="94" cy="132" r="7" fill="#8b7cff" />
-      <circle cx="250" cy="100" r="7" fill="#ff9ed2" />
-      <path d="M126 100 l4-9 4 9 9 4-9 4-4 9-4-9-9-4z" fill="#ffe7a3" transform="translate(-8 -10) scale(.9)" />
-      <path d="M200 160 l3-7 3 7 7 3-7 3-3 7-3-7-7-3z" fill="#ffe7a3" />
-    </>
-  );
-}
-
-function Echo() {
-  const pad = (x: number, y: number, c: string, lit: boolean) => (
-    <rect x={x} y={y} width="62" height="62" rx="16" fill={c} opacity={lit ? 1 : 0.28} stroke={c} strokeWidth="3" />
-  );
-  return (
-    <>
-      <rect width="320" height="200" fill="#0f2a2c" />
-      <circle cx="160" cy="100" r="96" fill="none" stroke="#3ddbb0" strokeWidth="1.5" opacity=".18" />
-      <circle cx="160" cy="100" r="70" fill="none" stroke="#3ddbb0" strokeWidth="1.5" opacity=".28" />
-      {pad(96, 36, '#3ddbb0', true)}
-      {pad(162, 36, '#8b7cff', false)}
-      {pad(96, 102, '#ffb547', false)}
-      {pad(162, 102, '#ff6b5e', true)}
-      <path d="M127 67 L193 133" stroke="#fff" strokeWidth="3" strokeDasharray="2 8" strokeLinecap="round" opacity=".8" />
-      <circle cx="127" cy="67" r="5" fill="#fff" />
-      <path d="M232 52 q14 18 0 36 M246 42 q22 28 0 56" stroke="#3ddbb0" strokeWidth="3" strokeLinecap="round" fill="none" opacity=".6" />
-    </>
-  );
+function Face({ x, y, fill, rotate = 0, square = false }: { x: number; y: number; fill: string; rotate?: number; square?: boolean }) {
+  return <g transform={`translate(${x} ${y}) rotate(${rotate})`}>
+    {square ? <rect x="-35" y="-36" width="70" height="72" rx="13" fill={fill} stroke="#202724" strokeWidth="3" /> : <path d="M-37 24v-35a37 37 0 0 1 74 0v35L25 17 12 29 0 18-12 29-24 18Z" fill={fill} stroke="#202724" strokeWidth="3" />}
+    <ellipse cx="-11" cy="-7" rx="7" ry="10" fill="#fffaf2" /><ellipse cx="11" cy="-7" rx="7" ry="10" fill="#fffaf2" /><circle cx="-8" cy="-5" r="3.5" fill="#202724" /><circle cx="14" cy="-5" r="3.5" fill="#202724" /><path d="M-8 12q9 9 18-1" fill="none" stroke="#202724" strokeWidth="3" strokeLinecap="round" />
+  </g>;
 }
 
 function Majority() {
-  const dots = [
-    [58, 120],
-    [82, 138],
-    [108, 118],
-    [70, 90],
-    [100, 92],
-    [130, 136],
-    [124, 108],
-    [48, 150],
-  ];
-  return (
-    <>
-      <rect width="320" height="200" fill="#34171b" />
-      <rect x="28" y="26" width="116" height="148" rx="22" fill="#ff6b5e" opacity=".18" />
-      <rect x="176" y="26" width="116" height="148" rx="22" fill="#8b7cff" opacity=".18" />
-      <text x="86" y="62" textAnchor="middle" fontSize="30" fontWeight="800" fill="#ff6b5e" fontFamily="Bricolage Grotesque Variable, sans-serif">A</text>
-      <text x="234" y="62" textAnchor="middle" fontSize="30" fontWeight="800" fill="#a99dff" fontFamily="Bricolage Grotesque Variable, sans-serif">B</text>
-      {dots.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r="9" fill="#ff9b91" />
-      ))}
-      <circle cx="236" cy="124" r="11" fill="#ffe27a" stroke="#ffb547" strokeWidth="3" />
-      <path d="M160 104 h16 m-6 -6 l6 6 -6 6" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity=".7" />
-    </>
-  );
+  return <><path fill="#ff6858" d="M0 0h480v350H0z" /><path d="M0 50h480M0 300h480" stroke="#202724" strokeWidth="1.5" opacity=".18" />
+    <text x="28" y="149" fill="#202724" fontSize="170" fontWeight="800" fontFamily="Bricolage Grotesque Variable, sans-serif" transform="rotate(-10 90 90)">A</text>
+    <text x="320" y="301" fill="#fff0d5" fontSize="185" fontWeight="800" fontFamily="Bricolage Grotesque Variable, sans-serif" transform="rotate(10 380 230)">B</text>
+    <path d="m195 0-25 62 43 25-34 58 51 31-21 61 44 29-13 84" fill="none" stroke="#202724" strokeWidth="2.5" strokeDasharray="7 7" />
+    <g className="preview-crowd"><Face x={99} y={244} fill="#f8cf46" rotate={-12} /><Face x={172} y={262} fill="#fffaf2" rotate={8} /><Face x={161} y={186} fill="#f8cf46" rotate={14} /></g>
+    <g className="preview-outsider"><Face x={325} y={124} fill="#68ddb1" rotate={-12} square /><path d="m366 71 12-19m-1 36 22-3" fill="none" stroke="#202724" strokeWidth="3" strokeLinecap="round" /></g><path d="m254 196 29 5-14 24" fill="none" stroke="#202724" strokeWidth="4" />
+  </>;
+}
+
+function Echo() {
+  return <><path fill="#68ddb1" d="M0 0h480v350H0z" />
+    <g stroke="#202724" fill="none" opacity=".13"><path d="M0 70h480M0 140h480M0 210h480M0 280h480M80 0v350M160 0v350M240 0v350M320 0v350M400 0v350" /></g>
+    <g transform="translate(240 165) rotate(-12)">
+      <g className="preview-pad pad-one"><path d="m0-124 62 62L0 0l-62-62Z" fill="#202724" /><path d="m-8-79 9-10v42" fill="none" stroke="#f8cf46" strokeWidth="6" /></g>
+      <g className="preview-pad pad-two"><path d="m71-53 62 62-62 62L9 9Z" fill="#fffaf2" stroke="#202724" strokeWidth="2.5" /><text x="71" y="22" textAnchor="middle" fontSize="39" fontWeight="800" fill="#202724">2</text></g>
+      <g className="preview-pad pad-three"><path d="m0 18 62 62L0 142l-62-62Z" fill="#f8cf46" stroke="#202724" strokeWidth="2.5" /><text x="0" y="94" textAnchor="middle" fontSize="39" fontWeight="800" fill="#202724">3</text></g>
+      <g className="preview-pad pad-four"><path d="m-71-53 62 62-62 62-62-62Z" fill="#32856a" stroke="#202724" strokeWidth="2.5" /><text x="-71" y="22" textAnchor="middle" fontSize="39" fontWeight="800" fill="#fffaf2">4</text></g>
+    </g><path d="M49 127v49m-12-38v27m24-41v53M425 151v49m-12-38v27m24-41v53" stroke="#202724" strokeWidth="4" strokeLinecap="round" />
+    <g fill="#202724"><circle cx="201" cy="327" r="4" /><circle cx="226" cy="327" r="4" /><circle cx="251" cy="327" r="4" /><circle cx="276" cy="327" r="4" /></g>
+  </>;
+}
+
+function Orbit() {
+  return <><path fill="#4b8eff" d="M0 0h480v350H0z" />
+    <g transform="translate(247 181) rotate(-25)"><g fill="none" stroke="#202724" strokeWidth="2" opacity=".55"><ellipse rx="193" ry="89" /><ellipse rx="145" ry="67" /><ellipse rx="97" ry="45" /></g><path d="M-173-39A193 89 0 0 1-82-81" stroke="#ff6858" strokeWidth="15" fill="none" strokeLinecap="round" />
+      <g className="preview-pilot"><circle cx="146" cy="0" r="20" fill="#fffaf2" stroke="#202724" strokeWidth="3" /><path d="m139-6 15 6-15 6Z" fill="#202724" /><path d="M113-6h-18m17 12H92" stroke="#fffaf2" strokeWidth="3" /></g></g>
+    <path d="m246 104 21 48 52 5-39 34 12 51-46-27-45 27 11-51-39-34 52-5Z" fill="#f8cf46" stroke="#202724" strokeWidth="3" /><ellipse cx="234" cy="173" rx="5" ry="8" fill="#202724" /><ellipse cx="257" cy="173" rx="5" ry="8" fill="#202724" /><path d="M235 192q10 8 20-1" stroke="#202724" strokeWidth="3" fill="none" />
+    <g className="preview-stars" fill="#fffaf2"><path d="m86 65 5 12 13 2-10 9 3 13-11-7-12 7 3-13-10-9 14-2Z" /><path d="m393 257 5 12 13 2-10 9 3 13-11-7-12 7 3-13-10-9 14-2Z" /></g><g stroke="#202724" strokeWidth="2"><path d="M384 47v19m-9-9h19M85 278v19m-9-9h19" /></g>
+  </>;
 }

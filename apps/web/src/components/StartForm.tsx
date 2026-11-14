@@ -35,6 +35,7 @@ export function StartForm({
   const [preview, setPreview] = useState<string | null>(null);
   const nickId = useId();
   const codeId = useId();
+  const modeId = useId();
   const selected = game ? GAME_BY_ID[game] : undefined;
   const nickRef = useRef<HTMLInputElement>(null);
 
@@ -97,14 +98,22 @@ export function StartForm({
 
   const connecting = busy || status === 'connecting';
   return (
-    <form onSubmit={submit} className={`panel space-y-4 ${compact ? 'p-5' : 'p-6'}`} noValidate aria-label="Start playing">
+    <form onSubmit={submit} className={`start-form panel space-y-4 ${compact ? 'p-5' : 'p-6'}`} noValidate aria-label="Start playing">
       <div role="tablist" aria-label="Create or join" className="grid grid-cols-2 gap-1 rounded-2xl bg-midnight p-1">
         {(['create', 'join'] as const).map((m) => (
-          <button key={m} type="button" role="tab" aria-selected={mode === m} onClick={() => setMode(m)} className={`min-h-10 rounded-xl text-sm font-semibold transition ${mode === m ? 'bg-hull text-chalk shadow-sm' : 'text-mist hover:text-chalk'}`}>
+          <button key={m} id={`${modeId}-${m}`} type="button" role="tab" aria-controls={`${modeId}-panel`} aria-selected={mode === m} tabIndex={mode === m ? 0 : -1} onClick={() => setMode(m)} onKeyDown={(e) => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return;
+            e.preventDefault();
+            const next = e.key === 'Home' ? 'create' : e.key === 'End' ? 'join' : m === 'create' ? 'join' : 'create';
+            setMode(next);
+            document.getElementById(`${modeId}-${next}`)?.focus();
+          }} className={`min-h-10 rounded-xl text-sm font-semibold transition ${mode === m ? 'bg-hull text-chalk shadow-sm' : 'text-mist hover:text-chalk'}`}>
             {m === 'create' ? 'Create a room' : 'Join with a code'}
           </button>
         ))}
       </div>
+
+      <div id={`${modeId}-panel`} role="tabpanel" aria-labelledby={`${modeId}-${mode}`} className="space-y-4">
 
       {selected && mode === 'create' && (
         <p className="rounded-xl bg-hull px-3 py-2 text-sm text-mist ring-1 ring-edge">
@@ -145,6 +154,7 @@ export function StartForm({
       <button type="submit" className="btn btn-primary w-full" disabled={connecting}>
         {connecting ? 'Connecting…' : mode === 'create' ? 'Create room' : 'Join room'}
       </button>
+      </div>
     </form>
   );
 }

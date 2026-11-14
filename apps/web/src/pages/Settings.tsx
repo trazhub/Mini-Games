@@ -11,8 +11,8 @@ function Toggle({ label, hint, checked, onChange }: { label: string; hint: strin
         <label htmlFor={id} className="font-semibold">{label}</label>
         <p id={`${id}-d`} className="text-sm text-mist">{hint}</p>
       </div>
-      <button id={id} type="button" role="switch" aria-checked={checked} aria-describedby={`${id}-d`} onClick={() => onChange(!checked)} className={`relative h-8 w-14 shrink-0 rounded-full transition ${checked ? 'bg-pulse' : 'bg-hull ring-1 ring-edge'}`}>
-        <span className={`absolute top-1 size-6 rounded-full bg-white transition-all ${checked ? 'left-7' : 'left-1'}`} />
+      <button id={id} type="button" role="switch" aria-checked={checked} aria-describedby={`${id}-d`} onClick={() => onChange(!checked)} className={`relative h-11 w-16 shrink-0 rounded-full border border-chalk transition ${checked ? 'bg-pulse' : 'bg-hull'}`}>
+        <span className={`absolute top-[7px] size-7 rounded-full border border-chalk bg-slate transition-all ${checked ? 'left-7' : 'left-1'}`} />
       </button>
     </div>
   );
@@ -35,7 +35,7 @@ export function Settings() {
         <div className="mt-4 grid gap-4 md:grid-cols-3">
           {GAMES.map((g) => (
             <div key={g.meta.id} className="panel p-5">
-              <h3 className="text-lg font-bold" style={{ color: g.meta.accent }}>{g.meta.name}</h3>
+              <h3 className="text-lg font-bold">{g.meta.name}</h3>
               <h4 className="mt-3 text-sm font-semibold">Keyboard</h4>
               <ul className="mt-1 space-y-1 text-sm text-mist">{g.meta.controls.keyboard.map((c) => <li key={c}>{c}</li>)}</ul>
               <h4 className="mt-3 text-sm font-semibold">Touch</h4>

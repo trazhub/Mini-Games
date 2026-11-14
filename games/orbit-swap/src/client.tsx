@@ -66,13 +66,13 @@ export default function OrbitSwapClient(props: GameClientProps<OrbitFullState>) 
         <p className="text-center text-sm text-mist">You are watching this match.</p>
       ) : (
         <div className="mx-auto flex w-full max-w-md gap-3" role="group" aria-label="Controls">
-          <button type="button" className={`${btn} btn-soft`} onPointerDown={(e) => { e.preventDefault(); swap(-1); }} data-testid="orbit-inner">
+          <button type="button" className={`${btn} btn-soft`} onPointerDown={(e) => { e.preventDefault(); swap(-1); }} onClick={(e) => { if (e.detail === 0) swap(-1); }} data-testid="orbit-inner">
             <span aria-hidden="true">↓</span>Inner
           </button>
-          <button type="button" className={`${btn} btn-primary`} onPointerDown={(e) => { e.preventDefault(); flip(); }} data-testid="orbit-flip">
+          <button type="button" className={`${btn} btn-primary`} onPointerDown={(e) => { e.preventDefault(); flip(); }} onClick={(e) => { if (e.detail === 0) flip(); }} data-testid="orbit-flip">
             <span aria-hidden="true">⟲</span>Reverse
           </button>
-          <button type="button" className={`${btn} btn-soft`} onPointerDown={(e) => { e.preventDefault(); swap(1); }} data-testid="orbit-outer">
+          <button type="button" className={`${btn} btn-soft`} onPointerDown={(e) => { e.preventDefault(); swap(1); }} onClick={(e) => { if (e.detail === 0) swap(1); }} data-testid="orbit-outer">
             <span aria-hidden="true">↑</span>Outer
           </button>
         </div>

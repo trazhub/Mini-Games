@@ -7,7 +7,7 @@ function resolveApiUrl(): string {
 }
 
 export const API_URL = resolveApiUrl();
-export const APP_NAME = (import.meta.env.VITE_APP_NAME as string | undefined) || 'MiniGameHub';
+export const APP_NAME = (import.meta.env.VITE_APP_NAME as string | undefined) || 'Mini-Games';
 
 /** Invite link for a room, correct under any base path (hash routing). */
 export function inviteUrl(code: string): string {

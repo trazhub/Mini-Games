@@ -24,7 +24,7 @@ export default defineConfig({
       use: { ...devices["Pixel 7"], channel: process.env.CI ? undefined : "chrome" },
     },
     // Uses the locally installed Chrome so no browser download is needed; falls back to bundled Chromium in CI.
-    { name: 'desktop', testMatch: /desktop.spec.ts/, use: { ...devices['Desktop Chrome'], channel: process.env.CI ? undefined : 'chrome' } },
+    { name: 'desktop', testMatch: /(?:desktop|arcade).spec.ts/, use: { ...devices['Desktop Chrome'], channel: process.env.CI ? undefined : 'chrome' } },
   ],
   webServer: [
     {

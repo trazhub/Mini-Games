@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Avatar } from '../../components/Avatar';
+import { Spark } from '../../components/ArcadeButton';
 import { ConnectionBadge } from '../../components/ConnectionBadge';
+import { ScoreReveal } from '../../components/ScoreReveal';
 import { GAME_BY_ID, GAMES } from '../../games/registry';
 import { sfx } from '../../lib/audio';
 import { useParty } from '../../lib/party';
@@ -21,19 +23,20 @@ export function Results() {
   }, [r?.matchId]);
 
   if (!r) return <div className="px-4 py-24 text-center text-mist">Loading results…</div>;
-  const game = GAME_BY_ID[r.gameId];
   const winners = r.rankings.filter((x) => r.winnerIds.includes(x.playerId));
   const myVote = party.votes[p.me];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
+    <div className="results-page mx-auto max-w-4xl px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm text-mist">{r.gameName} · party {party.code}</p>
         <ConnectionBadge />
       </div>
 
-      <section className="panel mt-3 overflow-hidden p-6 text-center sm:p-8" style={{ boxShadow: `inset 0 3px 0 ${game?.meta.accent ?? '#8b7cff'}` }} aria-labelledby="winner-h" data-testid="winner-banner">
-        <div className="flex justify-center -space-x-3">
+      <section className="winner-spotlight" aria-labelledby="winner-h" data-testid="winner-banner">
+        <Spark className="winner-burst" />
+        <p className="mb-5 text-xs font-semibold">Good game. Great bragging rights.</p>
+        <div className="winner-avatars">
           {winners.slice(0, 4).map((w) => (
             <Avatar key={w.playerId} id={w.avatar} size={84} className="ring-4 ring-slate" />
           ))}
@@ -41,21 +44,14 @@ export function Results() {
         <h1 id="winner-h" className="mt-4 text-4xl font-extrabold sm:text-5xl">
           {winners.length === 1 ? `${winners[0]!.name} wins` : `${winners.map((w) => w.name).join(' and ')} tie`}
         </h1>
-        <p className="mt-2 text-mist">{iWon ? 'That was you. Nicely played.' : 'Everyone gets a party point or more for finishing.'}</p>
+        <p className="mt-2">{iWon ? 'That was you. Nicely played.' : 'Everyone gets a party point or more for finishing.'}</p>
+        <Spark className="winner-burst" />
       </section>
 
       <section className="mt-6" aria-labelledby="board-h">
         <h2 id="board-h" className="text-2xl font-extrabold">Final scores</h2>
         <ol className="mt-3 space-y-2" data-testid="scoreboard">
-          {r.rankings.map((x) => (
-            <li key={x.playerId} className={`flex items-center gap-3 rounded-2xl bg-slate px-4 py-3 ring-1 ${x.playerId === p.me ? 'ring-2 ring-pulse' : 'ring-edge'}`}>
-              <span className={`flex size-9 items-center justify-center rounded-xl font-display text-lg font-extrabold ${x.rank === 1 ? 'bg-amber text-midnight' : 'bg-hull text-mist'}`}>{x.rank}</span>
-              <Avatar id={x.avatar} size={40} />
-              <span className="min-w-0 flex-1 truncate font-semibold">{x.name}{x.playerId === p.me && <span className="ml-1.5 text-sm font-normal text-mist">(you)</span>}</span>
-              <span className="text-sm text-mint">+{x.partyPoints} party</span>
-              <span className="w-16 text-right font-display text-xl font-extrabold tabular-nums">{x.score}</span>
-            </li>
-          ))}
+          {r.rankings.map((x, i) => <ScoreReveal key={x.playerId} ranking={x} isMe={x.playerId === p.me} index={i} />)}
         </ol>
       </section>
 

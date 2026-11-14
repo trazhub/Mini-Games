@@ -7,7 +7,7 @@ import type { OrbitFullState, OrbitSnapshot, PackedHazard, PackedStar } from './
 
 const SIZE = 640;
 const C = SIZE / 2;
-const PALETTE = [0xff6b5e, 0x3ddbb0, 0xffb547, 0x8b7cff, 0xff9ed2, 0x5ee6e0, 0xc3f06b, 0xffffff];
+const PALETTE = [0xff6858, 0x68ddb1, 0xf8cf46, 0x4b8eff, 0xffb3c9, 0x94e1ed, 0xc6d579, 0xf6f1e8];
 const INTERP_DELAY_MS = 110;
 
 export interface OrbitViewOptions {
@@ -80,7 +80,7 @@ export function createOrbitView(opts: OrbitViewOptions): OrbitView {
     parent: opts.parent,
     width: SIZE,
     height: SIZE,
-    backgroundColor: '#0b1226',
+    backgroundColor: '#151e23',
     transparent: false,
     banner: false,
     audio: { noAudio: true },
@@ -127,12 +127,12 @@ export function createOrbitView(opts: OrbitViewOptions): OrbitView {
 
     // Orbits + planet
     for (let l = 0; l < LANES; l++) {
-      g.lineStyle(2, 0x2b3558, 1);
+      g.lineStyle(2, 0x4b6f85, 1);
       g.strokeCircle(C, C, LANE_RADIUS_PX[l]!);
     }
-    g.fillStyle(0x1e2640, 1);
+    g.fillStyle(0x243c51, 1);
     g.fillCircle(C, C, 74);
-    g.fillStyle(0x8b7cff, 0.35);
+    g.fillStyle(0x4b8eff, 0.6);
     g.fillCircle(C, C, 52);
     g.fillStyle(0xffb547, 1);
     g.fillCircle(C, C, 22);
@@ -174,7 +174,7 @@ export function createOrbitView(opts: OrbitViewOptions): OrbitView {
         const x = C + Math.cos(ang) * r;
         const y = C + Math.sin(ang) * r;
         const mine = id === opts.me;
-        const blink = inv === 1 && Math.floor(now / 110) % 2 === 0;
+        const blink = inv === 1 && !opts.reducedMotion && Math.floor(now / 110) % 2 === 0;
         const alpha = conn ? (blink ? 0.35 : 1) : 0.25;
         if (mine) {
           g.lineStyle(3, 0xffffff, 0.9);
@@ -214,7 +214,7 @@ export function createOrbitView(opts: OrbitViewOptions): OrbitView {
       if (age > 800) pops.splice(i, 1);
     }
     const p0 = pops[pops.length - 1];
-    if (p0) popText.setText(p0.text).setPosition(p0.x, p0.y - (now - p0.born) / 20).setAlpha(1 - (now - p0.born) / 800).setVisible(true);
+    if (p0) popText.setText(p0.text).setPosition(p0.x, p0.y - (opts.reducedMotion ? 0 : (now - p0.born) / 20)).setAlpha(1 - (now - p0.born) / 800).setVisible(true);
     else popText.setVisible(false);
 
     // Report scores ~5Hz

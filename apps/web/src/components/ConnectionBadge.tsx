@@ -11,7 +11,7 @@ export function ConnectionBadge({ className = '' }: { className?: string }) {
   } as const;
   const s = map[status];
   return (
-    <span className={`inline-flex items-center gap-2 rounded-full bg-hull px-3 py-1 text-xs font-medium text-mist ring-1 ring-edge ${className}`} role="status" data-testid="connection-status" data-status={status}>
+    <span className={`connection-badge ${className}`} role="status" data-testid="connection-status" data-status={status}>
       <span className={`size-2 rounded-full ${s.dot}`} aria-hidden="true" />
       {s.text}
     </span>
