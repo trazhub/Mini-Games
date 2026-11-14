@@ -1,6 +1,14 @@
-/** Original SVG poster illustrations; lightweight focus/hover previews use CSS. */
+/**
+ * Poster art. Games with an illustrated poster in `src/assets/art/<id>.jpg` show that image (bundled and
+ * hashed by Vite, lazy-decoded); games without one fall back to the original SVG illustrations below.
+ */
+const posters = import.meta.glob('../assets/art/*.jpg', { eager: true, query: '?url', import: 'default' }) as Record<string, string>;
+const posterFor = (id: string): string | undefined => posters[`../assets/art/${id}.jpg`];
+
 export function GameArt({ id, className = '' }: { id: string; className?: string }) {
   const names: Record<string, string> = { 'majority-trap': 'Majority Trap: a conspiring crowd and one odd vote', 'echo-steps': 'Echo Steps: four rhythm pads in a repeating sequence', 'orbit-swap': 'Orbit Swap: a pilot, three orbital lanes and collectible stars', 'lane-runner': 'Lane Runner: a runner on a three-lane track dodging blocks and grabbing coins' };
+  const poster = posterFor(id);
+  if (poster) return <img src={poster} alt={names[id] ?? 'Game artwork'} width={960} height={720} loading="lazy" decoding="async" className={`game-art art-${id} art-poster ${className}`} />;
   return <svg viewBox="0 0 480 350" className={`game-art art-${id} ${className}`} role="img" aria-label={names[id] ?? 'Game artwork'} preserveAspectRatio="xMidYMid slice">
     {id === 'majority-trap' && <Majority />}{id === 'echo-steps' && <Echo />}{id === 'orbit-swap' && <Orbit />}{id === 'lane-runner' && <Lanes />}
   </svg>;

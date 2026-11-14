@@ -214,3 +214,6 @@ html.reduce-motion *,html.reduce-motion *::before,html.reduce-motion *::after { 
 .poster-solo:disabled { opacity: .6; cursor: progress; }
 .poster-lane-runner .poster-play:hover > span { background: var(--mint); transform: rotate(-30deg); }
 .poster-lane-runner .poster-picture { border-radius: 4px 4px 54px 4px; }
+
+/* Illustrated posters (JPG) share the SVG art's slot. */
+img.art-poster { object-fit: cover; height: auto; background: var(--paper); }
