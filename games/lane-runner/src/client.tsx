@@ -2,6 +2,10 @@ import type { ArcadeState, GameClientProps } from '@minigamehub/game-core';
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react';
 import { createRunController, keyToDirection, type Direction, type RunController } from './controller';
 import { COIN_VALUE, LANES, LOOKAHEAD, ROW_SPACING, TICK_HZ } from './sim';
+import backdropUrl from './assets/backdrop.jpg';
+import coinUrl from './assets/coin.png';
+import obstacleUrl from './assets/obstacle.png';
+import runnerUrl from './assets/runner.png';
 import type { LaneConfig } from './types';
 
 /** Short "get ready" beat before the course starts moving. */
@@ -30,42 +34,80 @@ const ACCENT = '#3ee0a0';
 /** Perspective: a point `z` world units ahead of the runner sits at this fraction of full size. */
 const depthScale = (z: number) => 1 / (1 + z * 0.05);
 
+/**
+ * Illustrated sprites (AI-generated art, exported as small PNG/JPG). They load once, lazily; until an image
+ * is decoded `draw` falls back to simple shapes so the game is playable immediately.
+ */
+interface Sprites {
+  runner: HTMLImageElement;
+  obstacle: HTMLImageElement;
+  coin: HTMLImageElement;
+  backdrop: HTMLImageElement;
+}
+let sprites: Sprites | null = null;
+function getSprites(): Sprites | null {
+  if (sprites) return sprites;
+  if (typeof Image === 'undefined') return null;
+  const make = (src: string) => {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = src;
+    return img;
+  };
+  sprites = { runner: make(runnerUrl), obstacle: make(obstacleUrl), coin: make(coinUrl), backdrop: make(backdropUrl) };
+  return sprites;
+}
+const ready = (img: HTMLImageElement | undefined): img is HTMLImageElement => !!img && img.complete && img.naturalWidth > 0;
+
 function draw(canvas: HTMLCanvasElement, c: RunController | null, shownLane: number, flash: number, reduced: boolean): void {
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
+  const art = getSprites();
   const dpr = canvas.width / Math.max(1, canvas.clientWidth);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const W = canvas.clientWidth;
   const H = canvas.clientHeight;
-  const horizon = H * 0.14;
-  const runnerY = H * 0.82;
+  const horizon = H * 0.2;
+  const runnerY = H * 0.84;
   const laneW = W * 0.27;
   const xAt = (lane: number, s: number) => W / 2 + (lane - (LANES - 1) / 2) * laneW * s;
   const yAt = (s: number) => horizon + (runnerY - horizon) * s;
 
-  const sky = ctx.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, '#10201d');
-  sky.addColorStop(1, '#0a1412');
+  // Sky and grass, then the illustrated backdrop with its horizon on ours.
+  const sky = ctx.createLinearGradient(0, 0, 0, horizon);
+  sky.addColorStop(0, '#fdf2dc');
+  sky.addColorStop(1, '#f6ead0');
   ctx.fillStyle = sky;
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(0, 0, W, horizon + 1);
+  ctx.fillStyle = '#b9dfc5';
+  ctx.fillRect(0, horizon, W, H - horizon);
+  if (ready(art?.backdrop)) {
+    const bw = W;
+    const bh = (art.backdrop.naturalHeight / art.backdrop.naturalWidth) * bw;
+    ctx.drawImage(art.backdrop, 0, horizon - bh * 0.5, bw, bh);
+  }
 
   // The road: a trapezoid from the horizon to the bottom edge.
   const sFar = depthScale(LOOKAHEAD);
   const roadFarHalf = (LANES * laneW * sFar) / 2;
   const sBottom = (H - horizon) / (runnerY - horizon); // scale at the bottom edge of the canvas
   const roadNearHalf = (LANES * laneW * sBottom) / 2;
-  ctx.fillStyle = '#16302a';
-  ctx.beginPath();
-  ctx.moveTo(W / 2 - roadFarHalf, yAt(sFar));
-  ctx.lineTo(W / 2 + roadFarHalf, yAt(sFar));
-  ctx.lineTo(W / 2 + roadNearHalf, H);
-  ctx.lineTo(W / 2 - roadNearHalf, H);
-  ctx.closePath();
-  ctx.fill();
+  const road = (grow: number, color: string) => {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - roadFarHalf * grow, yAt(sFar));
+    ctx.lineTo(W / 2 + roadFarHalf * grow, yAt(sFar));
+    ctx.lineTo(W / 2 + roadNearHalf * grow, H);
+    ctx.lineTo(W / 2 - roadNearHalf * grow, H);
+    ctx.closePath();
+    ctx.fill();
+  };
+  road(1.12, '#7fc6a0'); // verge
+  road(1, '#d9efdf'); // track
 
   // Lane dividers, scrolling with the distance so the speed is visible.
   const distance = c?.run.distance ?? 0;
-  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+  ctx.strokeStyle = 'rgba(255,255,255,0.95)';
   for (let div = 1; div < LANES; div++) {
     const lane = div - 0.5;
     const phase = reduced ? 0 : distance % (ROW_SPACING * 2);
@@ -75,7 +117,7 @@ function draw(canvas: HTMLCanvasElement, c: RunController | null, shownLane: num
       if (z1 <= z0) continue;
       const s0 = depthScale(z0);
       const s1 = depthScale(z1);
-      ctx.lineWidth = Math.max(1, 3 * s0);
+      ctx.lineWidth = Math.max(1, 4 * s0);
       ctx.beginPath();
       ctx.moveTo(xAt(lane, s0), yAt(s0));
       ctx.lineTo(xAt(lane, s1), yAt(s1));
@@ -86,6 +128,7 @@ function draw(canvas: HTMLCanvasElement, c: RunController | null, shownLane: num
   // Obstacles and coins, farthest first so near ones overlap far ones.
   if (c) {
     const rows = c.run.rows;
+    const spin = reduced ? 1 : 0.55 + 0.45 * Math.abs(Math.cos(distance * 0.35));
     for (let i = rows.length - 1; i >= 0; i--) {
       const row = rows[i]!;
       const z = row.d - distance;
@@ -95,34 +138,48 @@ function draw(canvas: HTMLCanvasElement, c: RunController | null, shownLane: num
       for (let lane = 0; lane < LANES; lane++) {
         const x = xAt(lane, s);
         if ((row.mask & (1 << lane)) !== 0) {
-          const w = laneW * 0.72 * s;
-          const h = laneW * 0.55 * s;
-          ctx.fillStyle = '#ff6b5e';
-          ctx.fillRect(x - w / 2, y - h, w, h);
-          ctx.fillStyle = 'rgba(0,0,0,0.28)';
-          ctx.fillRect(x - w / 2, y - h * 0.35, w, h * 0.35);
+          if (ready(art?.obstacle)) {
+            const size = laneW * 1.05 * s;
+            ctx.drawImage(art.obstacle, x - size / 2, y - size * 0.82, size, size);
+          } else {
+            const w = laneW * 0.72 * s;
+            const h = laneW * 0.55 * s;
+            ctx.fillStyle = '#ff6b5e';
+            ctx.fillRect(x - w / 2, y - h, w, h);
+          }
         } else if (row.coin === lane) {
-          ctx.fillStyle = '#ffd34d';
-          ctx.beginPath();
-          ctx.arc(x, y - laneW * 0.2 * s, Math.max(2, laneW * 0.16 * s), 0, Math.PI * 2);
-          ctx.fill();
+          const size = laneW * 0.5 * s;
+          const cy = y - laneW * 0.28 * s;
+          if (ready(art?.coin)) ctx.drawImage(art.coin, x - (size * spin) / 2, cy - size / 2, size * spin, size);
+          else {
+            ctx.fillStyle = '#ffd34d';
+            ctx.beginPath();
+            ctx.arc(x, cy, Math.max(2, size / 2), 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
       }
     }
   }
 
-  // The runner.
+  // The runner: feet on runnerY; faded when the run is over.
   const rx = xAt(shownLane, 1);
-  ctx.fillStyle = 'rgba(0,0,0,0.35)';
+  const rh = laneW * 1.15;
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
   ctx.beginPath();
-  ctx.ellipse(rx, runnerY + 4, laneW * 0.28, laneW * 0.08, 0, 0, Math.PI * 2);
+  ctx.ellipse(rx, runnerY + 2, laneW * 0.3, laneW * 0.07, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = c && !c.run.alive ? '#9aa7a2' : ACCENT;
-  ctx.beginPath();
-  ctx.roundRect(rx - laneW * 0.2, runnerY - laneW * 0.55, laneW * 0.4, laneW * 0.55, laneW * 0.1);
-  ctx.fill();
-  ctx.fillStyle = '#0a1412';
-  ctx.fillRect(rx - laneW * 0.11, runnerY - laneW * 0.42, laneW * 0.22, laneW * 0.1);
+  const dead = !!c && !c.run.alive;
+  if (dead) ctx.globalAlpha = 0.55;
+  const bob = reduced || dead ? 0 : Math.sin(distance * 0.9) * laneW * 0.03;
+  if (ready(art?.runner)) ctx.drawImage(art.runner, rx - rh / 2, runnerY - rh * 0.93 + bob, rh, rh);
+  else {
+    ctx.fillStyle = ACCENT;
+    ctx.beginPath();
+    ctx.roundRect(rx - laneW * 0.2, runnerY - laneW * 0.55, laneW * 0.4, laneW * 0.55, laneW * 0.1);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
 
   if (flash > 0 && !reduced) {
     ctx.fillStyle = `rgba(255,107,94,${Math.min(0.45, flash)})`;
