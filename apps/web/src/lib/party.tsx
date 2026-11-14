@@ -2,6 +2,7 @@ import { Client, type Room } from '@colyseus/sdk';
 import type { ClientAction, GameEventMessage } from '@minigamehub/game-core';
 import {
   C2S,
+  type ArcadeChunk,
   CLOSE_CODES,
   PARTY_ROOM_NAME,
   type GameStartPayload,
@@ -50,6 +51,10 @@ interface PartyApi {
   subscribeGame(listener: (e: GameEventMessage) => void): () => void;
   serverNow(): number;
   reportScores(scores: Record<string, number>): void;
+  /** Arcade games: send one chunk of the recorded input log. */
+  sendArcade(chunk: ArcadeChunk): void;
+  /** Show a toast from outside the room (e.g. a solo start that failed). */
+  notify(level: NoticePayload['level'], message: string): void;
 }
 
 const Ctx = createContext<PartyApi | null>(null);
@@ -357,8 +362,10 @@ export function PartyProvider({ children }: { children: ReactNode }) {
       },
       serverNow: () => Date.now() + offsetRef.current,
       reportScores: (s) => setScores((prev) => (shallowEqual(prev, s) ? prev : s)),
+      sendArcade: (chunk) => send(C2S.arcade, chunk),
+      notify: pushToast,
     }),
-    [status, closedReason, party, me, gameStart, gameState, scores, latencyMs, toasts, create, join, leave, send],
+    [status, closedReason, party, me, gameStart, gameState, scores, latencyMs, toasts, create, join, leave, send, pushToast],
   );
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;

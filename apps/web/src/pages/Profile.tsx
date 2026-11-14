@@ -2,13 +2,14 @@ import { LIMITS, sanitizeNickname, type AvatarId } from '@minigamehub/shared';
 import { useEffect, useId, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Avatar } from '../components/Avatar';
+import { RecoveryCard } from '../components/RecoveryCard';
 import { AvatarPicker } from '../components/AvatarPicker';
 import { ensureSession, fetchMyStats } from '../lib/api';
 import { useParty } from '../lib/party';
 import { getProfile, getSessionStats, saveProfile } from '../lib/storage';
 
 export function Profile() {
-  const { party, me, updateProfile } = useParty();
+  const { party, me, updateProfile, leave } = useParty();
   const [initial] = useState(getProfile);
   const [nickname, setNickname] = useState(initial.nickname);
   const [avatar, setAvatar] = useState<AvatarId>(initial.avatar);
@@ -18,6 +19,8 @@ export function Profile() {
   const [persisted, setPersisted] = useState<boolean | null>(null);
   const stats = getSessionStats();
   const id = useId();
+
+  const [sessionKey, setSessionKey] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,7 +38,7 @@ export function Profile() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [sessionKey]);
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -71,10 +74,17 @@ export function Profile() {
             <span role="status" className="text-sm text-mint">{saved}</span>
           </div>
         </form>
-        <p className="mt-3 text-sm text-mist">You are a guest. Your profile lives in this browser and your session ends when you close the tab. Nicknames are never used to identify you to the server.</p>
+        <p className="mt-3 text-sm text-mist">You are a guest. Your nickname and avatar live in this browser. The first tab you open keeps your player between visits; extra tabs are separate players that end when closed. Nicknames are never used to identify you to the server.</p>
       </div>
 
       <div className="space-y-6">
+        <RecoveryCard
+          onRestored={() => {
+            if (party) leave(); // the open party belongs to the old guest
+            setRemote(null);
+            setSessionKey((k) => k + 1);
+          }}
+        />
         <section className="panel p-6" aria-labelledby="sess">
           <h2 id="sess" className="text-xl font-bold">This session</h2>
           <dl className="mt-4 grid grid-cols-3 gap-3 text-center">

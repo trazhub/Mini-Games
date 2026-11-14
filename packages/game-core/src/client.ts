@@ -36,8 +36,8 @@ export interface GameClientProps<S = unknown> {
   sfx: (name: SfxName) => void;
   /**
    * Arcade games only: send one chunk of the recorded input log (`ArcadeRecorder.finish()`) as a
-   * `C2S.arcade` message. Optional until the web app provides it (apps/web GameView does not pass
-   * it yet); arcade game UIs should treat a missing `sendArcade` as "cannot submit".
+   * `C2S.arcade` message. Other games ignore it. Sending the same chunk set again is harmless (the
+   * server ignores a finished submission), which is how a UI retries after a reconnect.
    */
-  sendArcade?: (chunk: ArcadeChunk) => void;
+  sendArcade: (chunk: ArcadeChunk) => void;
 }

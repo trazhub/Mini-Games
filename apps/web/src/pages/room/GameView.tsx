@@ -121,6 +121,7 @@ export function GameView() {
                   subscribe={p.subscribeGame}
                   serverNow={p.serverNow}
                   reportScores={p.reportScores}
+                  sendArcade={p.sendArcade}
                   reducedMotion={prefersReducedMotion(settings)}
                   sfx={sfx}
                 />

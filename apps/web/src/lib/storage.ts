@@ -43,15 +43,7 @@ export function saveProfile(p: Profile): void {
   write(ls, 'mgh.profile', p);
 }
 
-// ---- guest session (per tab, so several tabs can be several players) -----------------------
-export interface StoredSession {
-  guestId: string;
-  token: string;
-  expiresAt: number;
-}
-export const getStoredSession = () => read<StoredSession>(ss, 'mgh.session');
-export const storeSession = (s: StoredSession) => write(ss, 'mgh.session', s);
-export const clearSession = () => remove(ss, 'mgh.session');
+// ---- guest session: see ./identity.ts (primary tab -> localStorage, other tabs -> sessionStorage) ----
 
 // ---- session statistics (this tab, this visit) -----------------------------------------------
 export interface SessionStats {
