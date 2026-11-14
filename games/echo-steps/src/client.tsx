@@ -4,7 +4,7 @@ import type { EchoState } from './types';
 
 const PADS = [
   { label: 'Up', key: ['arrowup', 'w', '1'], color: '#3ddbb0', area: 'col-start-2 row-start-1' },
-  { label: 'Right', key: ['arrowright', 'd', '2'], color: '#8b7cff', area: 'col-start-3 row-start-2' },
+  { label: 'Right', key: ['arrowright', 'd', '2'], color: '#83b1ff', area: 'col-start-3 row-start-2' },
   { label: 'Down', key: ['arrowdown', 's', '3'], color: '#ffb547', area: 'col-start-2 row-start-3' },
   { label: 'Left', key: ['arrowleft', 'a', '4'], color: '#ff6b5e', area: 'col-start-1 row-start-2' },
 ] as const;
@@ -146,13 +146,14 @@ export default function EchoStepsClient(props: GameClientProps<EchoState>) {
               key={p.label}
               type="button"
               className={`${p.area} aspect-square rounded-3xl text-lg font-bold transition disabled:cursor-default`}
-              style={{ background: on ? p.color : `${p.color}33`, boxShadow: on && !reducedMotion ? `0 0 34px ${p.color}` : 'none', color: on ? '#0b1226' : p.color, border: `3px solid ${p.color}` }}
+              style={{ background: on ? p.color : `${p.color}22`, boxShadow: on && !reducedMotion ? `0 5px 0 ${p.color}66` : 'none', transform: on && !reducedMotion ? 'scale(.96)' : undefined, color: on ? '#0b1226' : p.color, border: `3px solid ${p.color}` }}
               aria-label={`${p.label} pad`}
               disabled={!canInput}
               onPointerDown={(e) => {
                 e.preventDefault();
                 press(i);
               }}
+              onClick={(e) => { if (e.detail === 0) press(i); }}
               data-testid={`pad-${i}`}
             >
               {i + 1}
@@ -160,7 +161,7 @@ export default function EchoStepsClient(props: GameClientProps<EchoState>) {
           );
         })}
         <div className="col-start-2 row-start-2 flex items-center justify-center text-center font-display text-2xl font-extrabold text-mist" aria-hidden="true">
-          {state.phase === 'input' ? `${progress}/${state.length}` : state.phase === 'watch' ? '👀' : ''}
+          {state.phase === 'input' ? `${progress}/${state.length}` : state.phase === 'watch' ? <svg width="38" height="28" viewBox="0 0 38 28" fill="none"><path d="M2 14Q19-7 36 14 19 35 2 14Z" stroke="currentColor" strokeWidth="2" /><circle cx="19" cy="14" r="5" fill="currentColor" /></svg> : ''}
         </div>
       </div>
 

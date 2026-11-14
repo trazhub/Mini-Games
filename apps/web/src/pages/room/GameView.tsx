@@ -1,7 +1,7 @@
 import type { GameClientProps } from '@minigamehub/game-core';
-import { Component, lazy, Suspense, useMemo, useState, type ComponentType, type ReactNode } from 'react';
+import { Component, lazy, Suspense, useMemo, useState, type ComponentType, type CSSProperties, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Avatar } from '../../components/Avatar';
+import { GameHUD } from '../../components/GameHUD';
 import { ConnectionBadge } from '../../components/ConnectionBadge';
 import { GAME_BY_ID } from '../../games/registry';
 import { sfx } from '../../lib/audio';
@@ -58,10 +58,10 @@ export function GameView() {
     .sort((a, b) => b.score - a.score);
 
   return (
-    <div className="mx-auto max-w-6xl px-3 py-4 sm:px-4 sm:py-6">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+    <div className={`game-stage stage-${gameId}`} style={{ '--game-accent': gameId === 'orbit-swap' ? '#83b1ff' : gameId === 'echo-steps' ? '#68ddb1' : '#ff8c7e' } as CSSProperties}><div className="page-width">
+      <div className="game-toolbar mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-extrabold sm:text-3xl" style={{ color: meta.accent }}>{meta.name}</h1>
+          <h1 className="game-title text-2xl font-extrabold sm:text-3xl">{meta.name}</h1>
           {spectator && <span className="rounded-full bg-hull px-3 py-1 text-xs font-semibold text-mist">Watching</span>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -104,9 +104,9 @@ export function GameView() {
       )}
 
       <div className="grid gap-3 lg:grid-cols-[1fr_16rem]">
-        <div className="panel min-h-[26rem] overflow-hidden p-2 sm:p-3" data-testid="game-surface">
+        <div className="panel game-surface min-h-[26rem] overflow-hidden p-2 sm:p-3" data-testid="game-surface">
           <Boundary onLeave={() => nav('/')}>
-            <Suspense fallback={<div className="flex h-96 items-center justify-center text-mist" role="status">Loading {meta.name}…</div>}>
+            <Suspense fallback={<div className="flex h-96 items-center justify-center text-mist" role="status"><span className="loading-piece" aria-hidden="true" />Loading {meta.name}…</div>}>
               {start ? (
                 <Comp
                   key={start.matchId}
@@ -131,20 +131,8 @@ export function GameView() {
           </Boundary>
         </div>
 
-        <aside className="panel p-4" aria-labelledby="live-scores">
-          <h2 id="live-scores" className="text-lg font-bold">Live scores</h2>
-          <ol className="mt-3 space-y-2" data-testid="live-scores">
-            {ranked.map((pl, i) => (
-              <li key={pl.id} className={`flex items-center gap-2.5 rounded-xl bg-midnight px-2.5 py-2 ring-1 ${pl.id === p.me ? 'ring-pulse' : 'ring-edge'} ${pl.connected ? '' : 'opacity-50'}`}>
-                <span className="w-4 text-center text-xs text-mist">{i + 1}</span>
-                <Avatar id={pl.avatar} size={30} />
-                <span className="min-w-0 flex-1 truncate text-sm font-medium">{pl.name}</span>
-                <span className="font-display text-base font-bold tabular-nums">{pl.score}</span>
-              </li>
-            ))}
-          </ol>
-        </aside>
+        <GameHUD players={ranked} me={p.me} />
       </div>
-    </div>
+    </div></div>
   );
 }

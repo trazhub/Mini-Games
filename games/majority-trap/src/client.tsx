@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Choice } from './scoring';
 import type { MajorityState } from './types';
 
-const COLORS = { A: '#ff6b5e', B: '#a99dff' } as const;
+const COLORS = { A: '#ff8c7e', B: '#f8cf46' } as const;
 
 function useCountdown(endsAt: number, serverNow: () => number, active: boolean): number {
   const [left, setLeft] = useState(0);
@@ -109,8 +109,8 @@ export default function MajorityTrapClient(props: GameClientProps<MajorityState>
             {(['A', 'B'] as const).map((c) => {
               const on = (locked ? state.mine!.answer : answer) === c;
               return (
-                <button key={c} type="button" aria-pressed={on} onClick={() => { setAnswer(c); sfx('tap'); }} data-testid={`answer-${c}`} className="touch-game rounded-3xl p-5 text-left ring-2 transition disabled:cursor-default" style={{ background: on ? COLORS[c] : '#0b1226', color: on ? '#0b1226' : '#e9eeff', ['--tw-ring-color' as string]: on ? COLORS[c] : '#2b3558' }}>
-                  <span className="font-display text-3xl font-extrabold">{c}</span>
+                <button key={c} type="button" aria-pressed={on} onClick={() => { setAnswer(c); sfx('tap'); }} data-testid={`answer-${c}`} className="touch-game answer-panel p-5 text-left ring-2 transition disabled:cursor-default" style={{ background: COLORS[c], color: '#202724', ['--tw-ring-color' as string]: on ? '#fffaf2' : COLORS[c] }}>
+                  <span className="answer-letter font-display font-extrabold">{c}<span className="answer-check" aria-hidden="true">{on ? '✓' : '↗'}</span></span>
                   <span className="mt-1 block text-lg font-semibold">{c === 'A' ? q.a : q.b}</span>
                 </button>
               );

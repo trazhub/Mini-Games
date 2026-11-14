@@ -99,7 +99,7 @@ export function Profile() {
               ))}
             </ul>
           ) : (
-            <p className="mt-4 text-sm text-mist">No matches yet. <Link className="text-pulse underline" to="/play">Create a room</Link> to play one.</p>
+            <p className="mt-4 text-sm text-mist">No matches yet. <Link className="font-semibold text-chalk underline" to="/play">Create a room</Link> to play one.</p>
           )}
         </section>
         {persisted && remote && (

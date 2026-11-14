@@ -11,6 +11,7 @@ test.describe('mobile layout and touch controls (Pixel 7 viewport)', () => {
       await p.page.goto(BASE_URL + hash);
       await expect(p.page.locator('main')).toBeVisible();
       await noHorizontalScroll(p.page);
+      if (!hash) await p.page.screenshot({ path: 'docs/screenshots/home-mobile.png', fullPage: true, animations: 'disabled' });
     }
     // mobile navigation menu works
     await p.page.goto(BASE_URL);
@@ -31,6 +32,7 @@ test.describe('mobile layout and touch controls (Pixel 7 viewport)', () => {
     await joinRoom(guest, code);
     await noHorizontalScroll(host.page);
     await noHorizontalScroll(guest.page);
+    await host.page.screenshot({ path: 'docs/screenshots/lobby-mobile.png', fullPage: true, animations: 'disabled' });
     await guest.page.getByTestId('ready-toggle').tap();
     await host.page.getByTestId('start-game').tap();
     for (const p of [host, guest]) await expect(p.page.getByTestId('orbit-swap').locator('canvas')).toBeVisible({ timeout: 25_000 });
@@ -38,6 +40,7 @@ test.describe('mobile layout and touch controls (Pixel 7 viewport)', () => {
     const vp = host.page.viewportSize()!;
     expect(box!.width).toBeLessThanOrEqual(vp.width);
     await noHorizontalScroll(host.page);
+    await host.page.screenshot({ path: 'docs/screenshots/orbit-mobile.png', fullPage: true, animations: 'disabled' });
     for (const id of ['orbit-outer', 'orbit-flip', 'orbit-inner']) {
       const b = host.page.getByTestId(id);
       await expect(b).toBeVisible();
@@ -59,6 +62,14 @@ test.describe('mobile layout and touch controls (Pixel 7 viewport)', () => {
     await hostStart(host, 'echo-steps');
     await expect(host.page.getByTestId('echo-headline')).toHaveText('Your turn!', { timeout: 30_000 });
     await expect(host.page.getByTestId('pad-0')).toBeEnabled();
+    const up = await host.page.getByTestId('pad-0').boundingBox();
+    const right = await host.page.getByTestId('pad-1').boundingBox();
+    const down = await host.page.getByTestId('pad-2').boundingBox();
+    const left = await host.page.getByTestId('pad-3').boundingBox();
+    expect(up!.y, 'Up pad is above Right').toBeLessThan(right!.y);
+    expect(down!.y, 'Down pad is below Right').toBeGreaterThan(right!.y);
+    expect(left!.x, 'Left pad is left of Right').toBeLessThan(right!.x);
+    await host.page.screenshot({ path: 'docs/screenshots/echo-mobile.png', fullPage: true, animations: 'disabled' });
     const b = await host.page.getByTestId('pad-0').boundingBox();
     expect(b!.width).toBeGreaterThanOrEqual(44);
     await host.page.getByTestId('pad-0').tap();
