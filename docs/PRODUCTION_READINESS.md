@@ -1,8 +1,15 @@
 # Production readiness
 
-Last verified: 2026-11-13, on the Windows 11 development PC (Node 22, Chrome). **No live deployment
-exists.** This checklist separates what was executed from what still needs the VM, the network, or
-your approval. Do not treat the "not yet verified" rows as done.
+Local checks below were last run on 2026-11-13 on the Windows 11 development PC (Node 22, Chrome).
+**Live status (2026-11-14):** the backend is deployed (Docker Compose on a single VM, behind an
+existing Nginx reverse proxy) and the public path was checked from outside: `/health` reports the
+database up, the TLS certificate is valid, http redirects to https, CORS allows only the Pages
+origin, a WebSocket upgrade succeeds for the allowed origin and is refused for others, and `/metrics`
+is not exposed. A three-player bot join over `wss` had no failures, and a human confirmed play
+works. Still **not** verified: a VM reboot test, restricting port 2567 to the proxy host, a full
+match through the proxy under load, and every game on real phones. This checklist separates what
+was executed from what still needs the VM, the network, or your approval. Do not treat the "not yet
+verified" rows as done.
 
 ## Verified locally (executed)
 
