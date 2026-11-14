@@ -209,6 +209,7 @@ export interface ArcadeState<Cfg = Record<string, unknown>> {
 }
 
 const MAX_SEED = 2147483647;
+const MAX_SCORE = 2147483647;
 
 class ArcadeGame<Cfg extends Record<string, unknown>> implements GameInstance {
   private readonly cfg: Cfg;
@@ -218,6 +219,8 @@ class ArcadeGame<Cfg extends Record<string, unknown>> implements GameInstance {
   private readonly timers = new TickTimers();
   private readonly assemblers = new Map<string, ChunkAssembler>();
   private readonly scores = new Map<string, number>();
+  /** Participants permanently gone (kicked or reconnect grace expired). Only they stop counting. */
+  private readonly removed = new Set<string>();
   private deadline = 0;
   private started = false;
   private finished = false;
@@ -258,7 +261,7 @@ class ArcadeGame<Cfg extends Record<string, unknown>> implements GameInstance {
   handleAction(playerId: string, action: RawAction): void {
     if (this.finished || !this.started) return;
     if (typeof action !== 'object' || action === null || action.type !== 'arcade:chunk') return;
-    if (!this.participants.has(playerId) || this.scores.has(playerId)) return;
+    if (!this.participants.has(playerId) || this.removed.has(playerId) || this.scores.has(playerId)) return;
     const chunk = arcadeChunkSchema.safeParse({ i: action.i, n: action.n, d: action.d });
     if (!chunk.success) return;
     let asm = this.assemblers.get(playerId);
@@ -279,7 +282,8 @@ class ArcadeGame<Cfg extends Record<string, unknown>> implements GameInstance {
       const events = decodeInputLog(log, this.sim.maxTicks(this.cfg), this.sim.hz);
       if (!events) return 0;
       const { score } = this.sim.replay(this.seed, this.cfg, events);
-      return Number.isFinite(score) ? score : 0;
+      // Non-negative int4 (game_scores.best is an integer column); non-finite -> 0.
+      return Number.isFinite(score) ? Math.max(0, Math.min(MAX_SCORE, Math.floor(score))) : 0;
     } catch {
       return 0;
     }
@@ -292,11 +296,18 @@ class ArcadeGame<Cfg extends Record<string, unknown>> implements GameInstance {
     this.maybeFinishEarly();
   }
 
-  /** Every connected participant has submitted (needs at least one connected; else wait for the deadline). */
+  /**
+   * Finish early once every participant that has not been removed has submitted. A disconnected
+   * (but not removed) player still counts: a momentary socket drop must not zero a live run. They
+   * stop counting when the room removes them (reconnect grace expired, kicked); otherwise the
+   * deadline ends the match, so nothing can hang.
+   */
   private maybeFinishEarly(): void {
     if (this.finished || !this.started) return;
-    const connected = [...this.participants].filter((id) => this.ctx.isConnected(id));
-    if (connected.length > 0 && connected.every((id) => this.scores.has(id))) this.finish();
+    for (const id of this.participants) {
+      if (!this.removed.has(id) && !this.scores.has(id)) return;
+    }
+    this.finish();
   }
 
   private finish(): void {
@@ -318,12 +329,16 @@ class ArcadeGame<Cfg extends Record<string, unknown>> implements GameInstance {
     };
   }
 
-  onPlayerConnectionChange(): void {
+  onPlayerConnectionChange(playerId: string, connected: boolean): void {
+    // A reconnecting client resends its whole log: drop any partial assembly from before the drop.
+    if (connected) this.assemblers.delete(playerId);
     this.ctx.markDirty();
-    this.maybeFinishEarly();
   }
 
-  onPlayerRemoved(): void {
+  onPlayerRemoved(playerId: string): void {
+    if (!this.participants.has(playerId)) return;
+    this.removed.add(playerId);
+    this.assemblers.delete(playerId);
     this.maybeFinishEarly();
   }
 

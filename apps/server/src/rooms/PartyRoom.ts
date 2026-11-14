@@ -333,7 +333,10 @@ export class PartyRoom extends Room implements RoomHandle {
     const players = [...this.members.values()].filter((p) => p.client);
     // The daily challenge is a single-player arcade run: everyone gets the same seed and the board is
     // only fair if nobody else is in the party: the host must be the ONLY member, connected or not (a
-    // disconnected friend is still a member and may come back). Spectators only exist during a match.
+    // disconnected friend is still a member and may come back). There are no spectators here: that
+    // label only applies during a match, and someone who joined mid-match is an ordinary member once
+    // the party is back in the lobby/results, so `members.size === 1` already refuses them with the
+    // generic notice below.
     if (daily && (plugin.meta.kind !== 'arcade' || this.members.size !== 1)) {
       return this.notice(m, 'warn', 'The daily challenge is for one player and an arcade game');
     }

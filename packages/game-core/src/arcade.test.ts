@@ -340,24 +340,89 @@ describe('arcade plugin', () => {
     ]);
   });
 
-  it('a disconnected player does not block an early finish', () => {
+  const drop = (h: GameHarness, id: string) => {
+    h.connected.delete(id);
+    h.instance.onPlayerConnectionChange?.(id, false);
+  };
+  const reconnect = (h: GameHarness, id: string) => {
+    h.connected.add(id);
+    h.instance.onPlayerConnectionChange?.(id, true);
+  };
+
+  it('a brief disconnect after the others submitted does not end the match early', () => {
     const h = started(2);
-    h.connected.delete('p2');
-    h.instance.onPlayerConnectionChange?.('p2', false);
     submit(h, 'p1', splitChunks(encodeInputLog(events(3))));
+    drop(h, 'p2');
+    expect(h.result).toBeNull(); // p2's live run is not zeroed by a socket blip
+    reconnect(h, 'p2');
+    expect(h.result).toBeNull();
+    submit(h, 'p2', splitChunks(encodeInputLog(events(5))));
+    expect(h.result!.scores).toEqual([
+      { playerId: 'p1', score: 3 },
+      { playerId: 'p2', score: 5 },
+    ]);
+  });
+
+  it('the match ends early when the disconnected player is removed', () => {
+    const h = started(2);
+    drop(h, 'p2');
+    submit(h, 'p1', splitChunks(encodeInputLog(events(3))));
+    expect(h.result).toBeNull(); // still inside p2's reconnect grace
+    h.instance.onPlayerRemoved?.('p2');
     expect(h.result!.scores).toEqual([
       { playerId: 'p1', score: 3 },
       { playerId: 'p2', score: 0 },
     ]);
   });
 
-  it('a player who disconnects after the others submitted ends the match', () => {
+  it('removal before the others submit ends the match once they do', () => {
     const h = started(2);
-    submit(h, 'p1', splitChunks(encodeInputLog(events(3))));
+    drop(h, 'p2');
+    h.instance.onPlayerRemoved?.('p2');
     expect(h.result).toBeNull();
-    h.connected.delete('p2');
-    h.instance.onPlayerConnectionChange?.('p2', false);
-    expect(scoreOf(h, 'p1')).toBe(3);
+    submit(h, 'p1', splitChunks(encodeInputLog(events(2))));
+    expect(scoreOf(h, 'p1')).toBe(2);
+    expect(scoreOf(h, 'p2')).toBe(0);
+  });
+
+  it("a reconnecting player's resent chunks after a partial send are accepted", () => {
+    // A log long enough for several chunks: 900 events, 2 per second of 30 Hz ticks.
+    const big = Array.from({ length: 900 }, (_, k) => ({ tick: k * 15 + 3, code: k % 200 }));
+    const plugin = createArcadePlugin({ meta, defaultConfig: { ticks: 20_000 }, sim: counterSim });
+    const chunks = splitChunks(encodeInputLog(big));
+    expect(chunks.length).toBeGreaterThan(1);
+
+    // Real prefix before the drop, then the whole set again after reconnecting.
+    const a = new GameHarness(plugin, 2);
+    a.instance.start();
+    submit(a, 'p1', chunks.slice(0, 1));
+    drop(a, 'p1');
+    reconnect(a, 'p1');
+    expect((a.instance.getState(null) as { submitted: string[] }).submitted).toEqual([]);
+    submit(a, 'p1', chunks);
+    expect((a.instance.getState(null) as { submitted: string[] }).submitted).toEqual(['p1']);
+
+    // A partial send from an older attempt (different n) is discarded on reconnect, so the
+    // full resend is not poisoned as "mixed n".
+    const b = new GameHarness(plugin, 1);
+    b.instance.start();
+    b.instance.handleAction('p1', { type: 'arcade:chunk', i: 0, n: chunks.length + 1, d: 'AAAA' });
+    drop(b, 'p1');
+    reconnect(b, 'p1');
+    submit(b, 'p1', chunks);
+    expect(scoreOf(b, 'p1')).toBe(900);
+  });
+
+  it('normalises replayed scores to a non-negative int4', () => {
+    const results: number[] = [];
+    for (const raw of [1e12, -5, 2.7, NaN]) {
+      const p = createArcadePlugin({ meta, defaultConfig: { ticks: 300 }, sim: { ...counterSim, replay: () => ({ score: raw, ticks: 0 }) } });
+      const h = new GameHarness(p, 1);
+      h.instance.start();
+      submit(h, 'p1', splitChunks(encodeInputLog(events(1))));
+      results.push(scoreOf(h, 'p1')!);
+    }
+    expect(results).toEqual([2147483647, 0, 2, 0]);
   });
 
   it('dispose clears timers and prevents a late finish', () => {

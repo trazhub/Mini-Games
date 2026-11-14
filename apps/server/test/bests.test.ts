@@ -144,12 +144,35 @@ describe('GET /api/me/bests', () => {
 
     // recordScores is fire-and-forget on the server; poll until the row shows up.
     let got = await getBests(host.token);
-    for (let i = 0; i < 60 && got.body.bests.length === 0; i++) {
-      await sleep(50);
+    // Bounded well below the 60/min lookup limit shared with the other requests in this file.
+    for (let i = 0; i < 30 && got.body.bests.length === 0; i++) {
+      await sleep(100);
       got = await getBests(host.token);
     }
     expect(got.status).toBe(200);
     expect(got.body.bests).toEqual([{ gameId: 'solo-test', mode: 'solo', best: 120, plays: 1 }]);
+  });
+});
+
+describe('lookup rate limit on /api/me', () => {
+  it('/api/me/bests and /api/me/stats share the lookup limiter and 429 before auth', async () => {
+    const limited = await startTestServer();
+    try {
+      const statuses: number[] = [];
+      for (let i = 0; i < 30; i++) {
+        statuses.push((await fetch(`${limited.url}/api/me/bests`)).status);
+        statuses.push((await fetch(`${limited.url}/api/me/stats`)).status);
+      }
+      expect(statuses.every((s) => s === 401)).toBe(true); // 60 lookups allowed per minute per IP
+      const g = await getGuest(limited.url);
+      const auth = { headers: { authorization: `Bearer ${g.token}` } };
+      const bests = await fetch(`${limited.url}/api/me/bests`, auth);
+      expect(bests.status).toBe(429);
+      expect(await bests.json()).toEqual({ error: 'rate_limited' });
+      expect((await fetch(`${limited.url}/api/me/stats`, auth)).status).toBe(429);
+    } finally {
+      await limited.close();
+    }
   });
 });
 

@@ -133,9 +133,10 @@ describe('arcade protocol through a real room', () => {
     expect(srv.app.runtime.metrics.counters.malformed - malformedBefore).toBeGreaterThanOrEqual(8);
     expect(host!.party!.phase).toBe('playing');
 
-    // The disconnected player does not block the honest one.
+    // The disconnected player only delays the end until the room removes them (reconnect grace,
+    // 2.5 s in tests); they never block the honest one past that.
     for (const c of honestChunks(2)) host!.send('arcade:chunk', c);
-    await host!.until((b) => !!b.results, 5000, 'results');
+    await host!.until((b) => !!b.results, 8000, 'results');
     expect(scoreOf(host!, host!.playerId)).toBe(2);
     expect(scoreOf(host!, junk!.playerId)).toBe(0);
   });
@@ -198,8 +199,9 @@ describe('lane runner through the real registry', () => {
       const getBests = async () =>
         (await (await fetch(`${real.url}/api/me/bests`, { headers: { authorization: `Bearer ${host!.token}` } })).json()) as BestsResponse;
       let got = await getBests();
-      for (let i = 0; i < 60 && got.bests.length === 0; i++) {
-        await sleep(50);
+      // Bounded below the 60/min lookup limit on /api/me.
+      for (let i = 0; i < 30 && got.bests.length === 0; i++) {
+        await sleep(100);
         got = await getBests();
       }
       expect(got.bests).toEqual([{ gameId: 'lane-runner', mode: 'solo', best: expected, plays: 1 }]);

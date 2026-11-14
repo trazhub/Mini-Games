@@ -61,7 +61,8 @@ export interface Repository {
   getStats(guestId: string): Promise<PlayerStats | null>;
   /**
    * Upserts personal bests: `best = greatest(existing, score)`, `plays + 1`. Entries whose guestId is
-   * not a UUID (bots, test players) are skipped. Scores are stored as `max(0, round(score))`.
+   * not a UUID (bots, test players) are skipped. Scores are stored as
+   * `min(2147483647, max(0, round(score)))` (clamped to the int4 column range).
    */
   recordScores(entries: ScoreEntry[]): Promise<void>;
   /** All bests of a guest, ordered by game id then mode. */

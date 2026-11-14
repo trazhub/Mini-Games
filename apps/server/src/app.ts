@@ -217,6 +217,7 @@ export function createGameServer(opts: CreateServerOptions): GameServer {
       });
 
       app.get('/api/me/stats', async (req, res) => {
+        if (!lookupLimiter.allow(clientIp(req))) return void res.status(429).json({ error: 'rate_limited' });
         const claims = verifySession(config.sessionSecret, bearerToken(req));
         if (!claims) return void res.status(401).json({ error: 'unauthorized' });
         try {
@@ -227,6 +228,7 @@ export function createGameServer(opts: CreateServerOptions): GameServer {
       });
 
       app.get('/api/me/bests', async (req, res) => {
+        if (!lookupLimiter.allow(clientIp(req))) return void res.status(429).json({ error: 'rate_limited' });
         const claims = verifySession(config.sessionSecret, bearerToken(req));
         if (!claims) return void res.status(401).json({ error: 'unauthorized' });
         try {
